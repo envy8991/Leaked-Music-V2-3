@@ -32,7 +32,7 @@ struct SettingsView: View {
                             customSecondary = newTheme.secondaryColor
                         }) {
                             HStack {
-                                Text(preset.rawValue.capitalized)
+                                Text(preset.displayName)
                                 Spacer()
                                 // Small preview rectangle with the preset’s background gradient
                                 RoundedRectangle(cornerRadius: 4)

@@ -305,8 +305,21 @@ final class AudioPlayerManager: ObservableObject {
     // MARK: - Seeking
 
     public func seek(to seconds: Double) {
-        let time = CMTime(seconds: seconds, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        let clampedSeconds = min(max(seconds, 0), max(duration, 0))
+        let time = CMTime(seconds: clampedSeconds, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         player?.seek(to: time)
+        currentTime = clampedSeconds
+        Task { @MainActor in
+            updateNowPlayingInfo()
+        }
+    }
+
+    public func skipForward(_ seconds: Double = 15) {
+        seek(to: currentTime + seconds)
+    }
+
+    public func skipBackward(_ seconds: Double = 15) {
+        seek(to: currentTime - seconds)
     }
 
     // MARK: - Time Observer
@@ -411,6 +424,21 @@ final class AudioPlayerManager: ObservableObject {
         }
         cc.previousTrackCommand.addTarget { [weak self] _ in
             self?.previous()
+            return .success
+        }
+        cc.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            self?.seek(to: event.positionTime)
+            return .success
+        }
+        cc.skipForwardCommand.preferredIntervals = [15]
+        cc.skipForwardCommand.addTarget { [weak self] _ in
+            self?.skipForward()
+            return .success
+        }
+        cc.skipBackwardCommand.preferredIntervals = [15]
+        cc.skipBackwardCommand.addTarget { [weak self] _ in
+            self?.skipBackward()
             return .success
         }
     }

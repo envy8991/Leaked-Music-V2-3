@@ -4,6 +4,7 @@ struct FullPlayerView: View {
     @ObservedObject var playerManager: AudioPlayerManager
     @Environment(\.presentationMode) var presentationMode
     @EnvironmentObject var session: SessionStore
+    @EnvironmentObject var themeManager: ThemeManager
 
     @State private var sliderValue: Double = 0.0
     @State private var isEditingSlider = false
@@ -98,35 +99,30 @@ struct FullPlayerView: View {
                         .padding(.horizontal)
 
                         // Playback Controls
-                        HStack(spacing: 40) {
-                            Button(action: {
-                                playerManager.previous()
-                            }) {
-                                Image(systemName: "backward.fill")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.white)
+                        HStack(spacing: 28) {
+                            Button(action: { playerManager.previous() }) {
+                                Image(systemName: "backward.end.fill")
                             }
 
-                            Button(action: {
-                                if playerManager.isPlaying {
-                                    playerManager.pause()
-                                } else {
-                                    playerManager.resume()
-                                }
-                            }) {
+                            Button(action: { playerManager.skipBackward() }) {
+                                Image(systemName: "gobackward.15")
+                            }
+
+                            Button(action: playerManager.togglePlayPause) {
                                 Image(systemName: playerManager.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                    .font(.system(size: 70))
-                                    .foregroundColor(.white)
+                                    .font(.system(size: 74))
                             }
 
-                            Button(action: {
-                                playerManager.next()
-                            }) {
-                                Image(systemName: "forward.fill")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.white)
+                            Button(action: { playerManager.skipForward() }) {
+                                Image(systemName: "goforward.15")
+                            }
+
+                            Button(action: { playerManager.next() }) {
+                                Image(systemName: "forward.end.fill")
                             }
                         }
+                        .font(.largeTitle)
+                        .foregroundColor(.white)
                         .padding(.horizontal)
 
                         // Additional Options
@@ -228,7 +224,7 @@ struct FullPlayerView: View {
                             .foregroundColor(.white)
                     }
                 }
-                .background(Color.black.edgesIgnoringSafeArea(.all))
+                .background(playerBackground.edgesIgnoringSafeArea(.all))
                 .onAppear {
                     sliderValue = playerManager.currentTime
                 }
@@ -278,6 +274,16 @@ struct FullPlayerView: View {
         let minutes = Int(totalSeconds) / 60
         let seconds = Int(totalSeconds) % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+
+    @ViewBuilder
+    private var playerBackground: some View {
+        if themeManager.currentTheme.isGlassStyle {
+            themeManager.currentTheme.backgroundGradient
+                .overlay(Color.white.opacity(0.18))
+        } else {
+            Color.black
+        }
     }
 
     private var repeatIcon: String {
