@@ -24,10 +24,18 @@ class NewViewModel: ObservableObject {
     private var topSongsListener: ListenerRegistration?
     private var alphabeticalArtistsListener: ListenerRegistration?
     private var allArtistsListener: ListenerRegistration?
+    private var pendingInitialLoads: Set<String> = []
 
     // We’ll call this once (or whenever needed) to start listening
     func setupListeners() {
+        guard albumListener == nil,
+              songsListener == nil,
+              featuredListener == nil,
+              topSongsListener == nil,
+              alphabeticalArtistsListener == nil else { return }
+
         isLoading = true
+        pendingInitialLoads = ["albums", "songs", "featured", "topSongs", "artists"]
 
         let db = Firestore.firestore()
 
@@ -44,6 +52,7 @@ class NewViewModel: ObservableObject {
                     self.newAlbums = snapshot.documents.compactMap { try? $0.data(as: Album.self) }
                     print("NewViewModel: Loaded \(self.newAlbums.count) albums")
                 }
+                self.markInitialLoadComplete("albums")
             }
 
         // 2) New Songs
@@ -59,6 +68,7 @@ class NewViewModel: ObservableObject {
                     self.newSongs = snapshot.documents.compactMap { try? $0.data(as: Song.self) }
                     print("NewViewModel: Loaded \(self.newSongs.count) songs")
                 }
+                self.markInitialLoadComplete("songs")
             }
 
         // 3) Featured Songs
@@ -75,6 +85,7 @@ class NewViewModel: ObservableObject {
                     self.featuredSongs = snapshot.documents.compactMap { try? $0.data(as: Song.self) }
                     print("NewViewModel: Loaded \(self.featuredSongs.count) featured songs")
                 }
+                self.markInitialLoadComplete("featured")
             }
 
         // 4) Top Songs
@@ -90,6 +101,7 @@ class NewViewModel: ObservableObject {
                     self.topSongs = snapshot.documents.compactMap { try? $0.data(as: Song.self) }
                     print("NewViewModel: Loaded \(self.topSongs.count) top songs")
                 }
+                self.markInitialLoadComplete("topSongs")
             }
 
         // 5) Alphabetical Artists (Limited)
@@ -105,10 +117,15 @@ class NewViewModel: ObservableObject {
                     self.alphabeticalArtists = snapshot.documents.compactMap { try? $0.data(as: Artist.self) }
                     print("NewViewModel: Loaded \(self.alphabeticalArtists.count) alphabetical artists")
                 }
+                self.markInitialLoadComplete("artists")
             }
 
-        // 6) All Artists (Alphabetical - for "See All" view)
-        allArtistsListener = db.collection("artists")
+    }
+
+    func loadAllArtistsIfNeeded() {
+        guard allArtistsListener == nil else { return }
+
+        allArtistsListener = Firestore.firestore().collection("artists")
             .order(by: "name")
             .addSnapshotListener { [weak self] snapshot, error in
                 guard let self = self else { return }
@@ -119,8 +136,12 @@ class NewViewModel: ObservableObject {
                     self.allArtists = snapshot.documents.compactMap { try? $0.data(as: Artist.self) }
                     print("NewViewModel: Loaded \(self.allArtists.count) all artists")
                 }
-                self.isLoading = false // Move isLoading = false here, after all data is fetched
             }
+    }
+
+    private func markInitialLoadComplete(_ key: String) {
+        pendingInitialLoads.remove(key)
+        isLoading = !pendingInitialLoads.isEmpty
     }
 
     // Remove listeners when we no longer need them

@@ -14,7 +14,12 @@ final class ImageCache {
     private init() {}
 
     /// The underlying cache. Key = the image URL, Value = the image data
-    private let cache = NSCache<NSURL, UIImage>()
+    private let cache: NSCache<NSURL, UIImage> = {
+        let cache = NSCache<NSURL, UIImage>()
+        cache.countLimit = 250
+        cache.totalCostLimit = 50 * 1024 * 1024
+        return cache
+    }()
 
     /// Retrieve an image from cache if present.
     func image(for url: NSURL) -> UIImage? {
@@ -23,6 +28,7 @@ final class ImageCache {
 
     /// Store an image in the cache.
     func store(_ image: UIImage, for url: NSURL) {
-        cache.setObject(image, forKey: url)
+        let cost = Int(image.size.width * image.size.height * image.scale * image.scale * 4)
+        cache.setObject(image, forKey: url, cost: cost)
     }
 }
