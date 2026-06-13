@@ -53,14 +53,14 @@ struct ContentView: View {
                   dismissButton: .default(Text("OK"), action: { session.appError = nil }))
         }
         .onOpenURL { url in
-            print("Deep link received: \(url)")
+            Logger.log("Deep link received: \(url)")
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            print("App became active")
+            Logger.log("App became active")
             session.updateOnlineStatus(isOnline: true)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-            print("App will resign active")
+            Logger.log("App will resign active")
             session.updateOnlineStatus(isOnline: false)
         }
         .onAppear {
