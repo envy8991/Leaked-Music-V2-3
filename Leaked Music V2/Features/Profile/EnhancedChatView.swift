@@ -15,6 +15,7 @@ struct EnhancedChatView: View {
     @State private var messages: [ChatMessage] = []
     @State private var newMessage: String = ""
     @State private var isLoading = false
+    @State private var messageListener: ListenerRegistration?
     
     var body: some View {
         VStack {
@@ -28,10 +29,11 @@ struct EnhancedChatView: View {
                     }
                     .padding()
                 }
-                .onChange(of: messages) { _ in
-                    if let lastMessage = messages.last {
+                .onChange(of: messages.last?.id) { lastMessageId in
+                    guard let lastMessageId = lastMessageId else { return }
+                    DispatchQueue.main.async {
                         withAnimation {
-                            scrollViewProxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            scrollViewProxy.scrollTo(lastMessageId, anchor: .bottom)
                         }
                     }
                 }
@@ -53,12 +55,17 @@ struct EnhancedChatView: View {
         .onAppear {
             loadMessages()
         }
+        .onDisappear {
+            messageListener?.remove()
+            messageListener = nil
+        }
     }
     
     private func loadMessages() {
+        guard messageListener == nil, let conversationId = conversation.id else { return }
         isLoading = true
         let db = Firestore.firestore()
-        db.collection("conversations").document(conversation.id ?? "")
+        messageListener = db.collection("conversations").document(conversationId)
             .collection("messages")
             .order(by: "timestamp", descending: false)
             .addSnapshotListener { snapshot, error in

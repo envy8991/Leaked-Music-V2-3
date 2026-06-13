@@ -18,9 +18,6 @@ struct ArtistSelectionView: View {
                     Text(artist.name)
                         .foregroundColor(.primary) // Force text to be non-grey
                 }
-                .onAppear { // Add onAppear to each row
-                    print("Artist Row Appeared: \(artist.name)")
-                }
             }
             Button("Create New Artist") {
                 viewModel.showCreateArtistSheet = true
@@ -33,7 +30,6 @@ struct ArtistSelectionView: View {
             CreateArtistView(viewModel: viewModel)
         }
         .onAppear {
-            print("ArtistSelectionView appeared - fetching artists...") // Added print
             viewModel.fetchArtists()
         }
     }

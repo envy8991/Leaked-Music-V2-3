@@ -108,13 +108,9 @@ struct NewView: View {
                     viewModel.newSongs.isEmpty &&
                     viewModel.featuredSongs.isEmpty &&
                     viewModel.topSongs.isEmpty &&
-                    viewModel.alphabeticalArtists.isEmpty &&
-                    viewModel.allArtists.isEmpty {
+                    viewModel.alphabeticalArtists.isEmpty {
                     viewModel.setupListeners()
                 }
-            }
-            .onDisappear {
-                viewModel.removeListeners()
             }
             .alert(item: $viewModel.localError) { error in
                 Alert(title: Text("Error"),

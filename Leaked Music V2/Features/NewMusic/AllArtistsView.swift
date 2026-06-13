@@ -20,7 +20,7 @@ struct AllArtistsView: View {
         .navigationTitle("All Artists")
         .appBackground()
         .onAppear {
-            // Optionally refresh all artists here if needed again
+            viewModel.loadAllArtistsIfNeeded()
         }
     }
 }
