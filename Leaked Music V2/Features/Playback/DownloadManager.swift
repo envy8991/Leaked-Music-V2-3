@@ -57,29 +57,43 @@ class DownloadManager: ObservableObject {
             return
         }
         
-        // Use a dispatch group to download audio and artwork concurrently.
         let group = DispatchGroup()
-        var updatedSong = song  // This will be updated with local file URLs.
+        let stateQueue = DispatchQueue(label: "com.leakedmusic.download-manager.state")
+        var updatedSong = song
         var encounteredError: Error?
+
+        func setErrorIfNeeded(_ error: Error) {
+            stateQueue.sync {
+                if encounteredError == nil {
+                    encounteredError = error
+                }
+            }
+        }
+
+        func updateDownloadedSong(_ update: (inout Song) -> Void) {
+            stateQueue.sync {
+                update(&updatedSong)
+            }
+        }
         
         // Download the audio.
         group.enter()
         let audioTask = URLSession.shared.downloadTask(with: remoteAudioURL) { tempURL, response, error in
             if let error = error {
-                encounteredError = error
+                setErrorIfNeeded(error)
                 group.leave()
                 return
             }
             guard let tempURL = tempURL else {
-                encounteredError = DownloadError.noData
+                setErrorIfNeeded(DownloadError.noData)
                 group.leave()
                 return
             }
             do {
                 try fileManager.copyItem(at: tempURL, to: audioDestinationURL)
-                updatedSong.audioURL = audioDestinationURL.absoluteString
+                updateDownloadedSong { $0.audioURL = audioDestinationURL.absoluteString }
             } catch {
-                encounteredError = error
+                setErrorIfNeeded(error)
             }
             group.leave()
         }
@@ -91,17 +105,20 @@ class DownloadManager: ObservableObject {
             let artworkFileName = "artwork_" + (song.id ?? UUID().uuidString) + ".jpg"
             let artworkDestinationURL = documentsURL.appendingPathComponent(artworkFileName)
             if fileManager.fileExists(atPath: artworkDestinationURL.path) {
-                updatedSong.artworkURL = artworkDestinationURL.absoluteString
+                updateDownloadedSong { $0.artworkURL = artworkDestinationURL.absoluteString }
                 group.leave()
             } else {
                 let artworkTask = URLSession.shared.dataTask(with: remoteArtworkURL) { data, response, error in
                     if let data = data {
                         do {
                             try data.write(to: artworkDestinationURL)
-                            updatedSong.artworkURL = artworkDestinationURL.absoluteString
+                            updateDownloadedSong { $0.artworkURL = artworkDestinationURL.absoluteString }
                         } catch {
-                            print("Artwork saving error: \(error.localizedDescription)")
+                            setErrorIfNeeded(error)
+                            Logger.log("Artwork saving error", error: error)
                         }
+                    } else if let error {
+                        setErrorIfNeeded(error)
                     }
                     group.leave()
                 }
@@ -111,7 +128,8 @@ class DownloadManager: ObservableObject {
         
         // When all downloads finish...
         group.notify(queue: .main) {
-            if let error = encounteredError {
+            let result: (Song, Error?) = stateQueue.sync { (updatedSong, encounteredError) }
+            if let error = result.1 {
                 completion(.failure(error))
             } else {
                 // If the song has a valid ID, update its downloadCount in Firestore.
@@ -121,16 +139,18 @@ class DownloadManager: ObservableObject {
                         "downloadCount": FieldValue.increment(Int64(1))
                     ]) { err in
                         if let err = err {
-                            print("Error updating download count: \(err.localizedDescription)")
+                            Logger.log("Error updating download count", error: err)
                         } else {
-                            print("Download count incremented for song \(songID)")
+                            Logger.log("Download count incremented for song \(songID)")
                         }
                     }
                 }
                 
                 // Append the updated song info to our local list.
-                self.downloadedSongsData.append(DownloadedSong(from: updatedSong))
-                completion(.success(updatedSong))
+                if !self.downloadedSongsData.contains(where: { $0.id == result.0.id }) {
+                    self.downloadedSongsData.append(DownloadedSong(from: result.0))
+                }
+                completion(.success(result.0))
             }
         }
     }
@@ -144,7 +164,7 @@ class DownloadManager: ObservableObject {
             do {
                 try fileManager.removeItem(at: audioURL)
             } catch {
-                print("Error removing audio file: \(error.localizedDescription)")
+                Logger.log("Error removing audio file", error: error)
             }
         }
         
@@ -156,14 +176,14 @@ class DownloadManager: ObservableObject {
             do {
                 try fileManager.removeItem(at: artworkURL)
             } catch {
-                print("Error removing artwork file: \(error.localizedDescription)")
+                Logger.log("Error removing artwork file", error: error)
             }
         }
         
         if let index = downloadedSongsData.firstIndex(where: { $0.id == song.id }) {
             downloadedSongsData.remove(at: index)
         }
-        print("\(song.title) removed from downloads.")
+        Logger.log("\(song.title) removed from downloads.")
     }
     
     /// Helper method to compute a local artwork file URL for a song.
@@ -180,7 +200,7 @@ class DownloadManager: ObservableObject {
             let data = try encoder.encode(downloadedSongsData)
             UserDefaults.standard.set(data, forKey: downloadsKey)
         } catch {
-            print("Failed to save downloaded songs: \(error)")
+            Logger.log("Failed to save downloaded songs", error: error)
         }
     }
     
@@ -191,7 +211,7 @@ class DownloadManager: ObservableObject {
             let songs = try decoder.decode([DownloadedSong].self, from: data)
             self.downloadedSongsData = songs
         } catch {
-            print("Failed to load downloaded songs: \(error)")
+            Logger.log("Failed to load downloaded songs", error: error)
         }
     }
     

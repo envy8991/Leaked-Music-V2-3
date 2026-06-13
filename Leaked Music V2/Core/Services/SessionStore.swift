@@ -28,7 +28,6 @@ class SessionStore: ObservableObject {
     
     init() {
         Logger.log("SessionStore initialized")
-        print("[SessionStore] init()")
         listen()
     }
     
@@ -109,11 +108,11 @@ class SessionStore: ObservableObject {
     /// Call this whenever user picks a new theme (from `SettingsView` or anywhere).
     func updateFirestoreTheme(primaryHex: String, secondaryHex: String) {
         guard let uid = currentUser?.uid else {
-            print("DEBUG: updateFirestoreTheme called, but currentUser is nil or has no uid.")
+            Logger.log("updateFirestoreTheme called without a current user uid")
             return
         }
         
-        print("DEBUG: Attempting to update Firestore theme -> primary=\(primaryHex), secondary=\(secondaryHex)")
+        Logger.log("Attempting to update Firestore theme -> primary=\(primaryHex), secondary=\(secondaryHex)")
         
         let db = Firestore.firestore()
         let themeData: [String: Any] = [
@@ -123,9 +122,9 @@ class SessionStore: ObservableObject {
         
         db.collection("users").document(uid).updateData(["customTheme": themeData]) { error in
             if let error = error {
-                print("Error updating custom theme: \(error.localizedDescription)")
+                Logger.log("Error updating custom theme", error: error)
             } else {
-                print("Successfully updated Firestore theme for user \(uid) with primary=\(primaryHex), secondary=\(secondaryHex)")
+                Logger.log("Successfully updated Firestore theme for user \(uid) with primary=\(primaryHex), secondary=\(secondaryHex)")
             }
         }
     }
@@ -462,7 +461,7 @@ class SessionStore: ObservableObject {
         }
         coverRef.putData(data, metadata: nil) { _, err in
             if let err = err {
-                print("Cover art upload error: \(err.localizedDescription)")
+                Logger.log("Cover art upload error", error: err)
                 completion(nil)
                 return
             }
@@ -484,28 +483,28 @@ class SessionStore: ObservableObject {
         let songRef = db.collection("users").document(uid).collection("librarySongs").document(songId)
         songRef.delete { error in
             if let error = error {
-                print("Error deleting song \(song.title): \(error.localizedDescription)")
+                Logger.log("Error deleting song \(song.title)", error: error)
                 completion(error)
             } else {
-                print("Deleted song \(song.title) successfully.")
+                Logger.log("Deleted song \(song.title) successfully.")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     if let albumId = song.albumId, !albumId.isEmpty {
                         db.collection("users").document(uid).collection("librarySongs")
                             .whereField("albumId", isEqualTo: albumId)
                             .getDocuments { snapshot, error in
                                 if let error = error {
-                                    print("Error querying songs for album \(albumId): \(error.localizedDescription)")
+                                    Logger.log("Error querying songs for album \(albumId)", error: error)
                                     completion(error)
                                 } else if let snapshot = snapshot {
-                                    print("Found \(snapshot.documents.count) songs for album \(albumId)")
+                                    Logger.log("Found \(snapshot.documents.count) songs for album \(albumId)")
                                     if snapshot.documents.isEmpty {
                                         let albumRef = db.collection("users").document(uid).collection("libraryAlbums").document(albumId)
                                         albumRef.delete { albumDeleteError in
                                             if let albumDeleteError = albumDeleteError {
-                                                print("Error deleting album \(albumId): \(albumDeleteError.localizedDescription)")
+                                                Logger.log("Error deleting album \(albumId)", error: albumDeleteError)
                                                 completion(albumDeleteError)
                                             } else {
-                                                print("Album \(albumId) deleted successfully because no songs remain.")
+                                                Logger.log("Album \(albumId) deleted successfully because no songs remain.")
                                                 completion(nil)
                                             }
                                         }

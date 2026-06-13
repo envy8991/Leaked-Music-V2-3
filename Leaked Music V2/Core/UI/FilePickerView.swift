@@ -46,9 +46,6 @@ struct FilePickerView: UIViewControllerRepresentable {
         // Combine standard and custom UTTypes
         let supportedTypes: [UTType] = standardTypes + customTypes
         
-        // Optional: Print supported UTTypes for debugging
-        print("Supported UTTypes: \(supportedTypes.map { $0.identifier })")
-        
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: supportedTypes, asCopy: true)
         picker.allowsMultipleSelection = allowsMultipleSelection
         picker.delegate = context.coordinator

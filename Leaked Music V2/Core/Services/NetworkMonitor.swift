@@ -24,13 +24,13 @@ class NetworkMonitor: ObservableObject {
         monitor.pathUpdateHandler = { path in
             DispatchQueue.main.async {
                 self.isConnected = path.status == .satisfied
-                self.logMessage("Network: `\(self.isConnected ? "Connected" : "Disconnected")")
+                self.logMessage("Network: \(self.isConnected ? "Connected" : "Disconnected")")
             }
         }
         monitor.start(queue: queue)
     }
     
     private func logMessage(_ message: String) {
-        print(message)
+        Logger.log(message)
     }
 }
