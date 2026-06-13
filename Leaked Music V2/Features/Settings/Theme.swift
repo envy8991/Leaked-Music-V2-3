@@ -6,6 +6,9 @@ struct Theme {
     var primaryColor: Color
     var secondaryColor: Color
     var backgroundGradient: LinearGradient
+    var surfaceColor: Color = Color(UIColor.systemBackground).opacity(0.82)
+    var textColor: Color = .primary
+    var isGlassStyle: Bool = false
 }
 
 // MARK: - ThemeManager
@@ -59,9 +62,20 @@ class ThemeManager: ObservableObject {
     
     // MARK: - Optional: If you want "preset" themes purely in the local UI
     enum Preset: String, CaseIterable, Identifiable {
-        case blueWhite, redBlack, purpleOrange, vibrant, sunset, forest, ocean, fire
+        case blueWhite, redBlack, purpleOrange, vibrant, sunset, forest, ocean, fire, iOS26
         
         var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .iOS26:
+                return "iOS 26"
+            default:
+                return rawValue
+                    .replacingOccurrences(of: "([a-z])([A-Z])", with: "$1 $2", options: .regularExpression)
+                    .capitalized
+            }
+        }
         
         /// Returns a local SwiftUI `Theme` for each preset
         var theme: Theme {
@@ -140,6 +154,23 @@ class ThemeManager: ObservableObject {
                     startPoint: .top, endPoint: .bottom
                 )
                 return Theme(primaryColor: primary, secondaryColor: secondary, backgroundGradient: grad)
+
+            case .iOS26:
+                let primary = Color(red: 0.18, green: 0.56, blue: 1.0)
+                let secondary = Color(red: 0.74, green: 0.88, blue: 1.0)
+                let glow = Color(red: 0.94, green: 0.98, blue: 1.0)
+                let grad = LinearGradient(
+                    gradient: Gradient(colors: [glow, secondary, primary.opacity(0.72)]),
+                    startPoint: .topLeading, endPoint: .bottomTrailing
+                )
+                return Theme(
+                    primaryColor: primary,
+                    secondaryColor: secondary,
+                    backgroundGradient: grad,
+                    surfaceColor: .white.opacity(0.34),
+                    textColor: Color(red: 0.04, green: 0.08, blue: 0.14),
+                    isGlassStyle: true
+                )
             }
         }
     }

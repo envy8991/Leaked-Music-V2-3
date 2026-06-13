@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var session: SessionStore
     @ObservedObject var playerManager = AudioPlayerManager.shared
+    @EnvironmentObject var themeManager: ThemeManager
     
     // Create single, persistent view models for "New" and "Library"
     @StateObject private var newVM = NewViewModel()
@@ -56,7 +57,7 @@ struct MainTabView: View {
                 if playerManager.currentSong != nil {
                     MiniPlayerView(playerManager: playerManager)
                         .frame(height: miniPlayerHeight)
-                        .background(Color.black.opacity(0.85))
+                        .background(Color.clear)
                         .transition(.move(edge: .bottom))
                 }
                 
@@ -90,8 +91,8 @@ struct MainTabView: View {
                 }
                 .padding(.horizontal, 20)
                 .frame(height: tabBarHeight)
-                .background(Color(UIColor.systemBackground))
-                .cornerRadius(12)
+                .background(tabBarBackground)
+                .clipShape(RoundedRectangle(cornerRadius: themeManager.currentTheme.isGlassStyle ? 26 : 12, style: .continuous))
                 .shadow(color: Color.black.opacity(0.2), radius: 6, y: -2)
             }
             .padding(.bottom, tabBarBottomPadding)
@@ -99,6 +100,17 @@ struct MainTabView: View {
         }
         // Allow our custom layout to extend to the screen bottom
         .edgesIgnoringSafeArea(.bottom)
+    }
+
+    @ViewBuilder
+    private var tabBarBackground: some View {
+        if themeManager.currentTheme.isGlassStyle {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(themeManager.currentTheme.surfaceColor)
+        } else {
+            Color(UIColor.systemBackground)
+        }
     }
 }
 
@@ -121,7 +133,7 @@ struct TabBarButton: View {
                 Text(label)
                     .font(.caption)
             }
-            .foregroundColor(selectedTab == tab ? .blue : .gray)
+            .foregroundColor(selectedTab == tab ? Color.accentColor : .gray)
         }
         .buttonStyle(PlainButtonStyle())
     }

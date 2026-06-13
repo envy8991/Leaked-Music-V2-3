@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MiniPlayerView: View {
     @ObservedObject var playerManager: AudioPlayerManager
+    @EnvironmentObject var themeManager: ThemeManager
     @State private var showFullPlayer = false
     @GestureState private var dragOffset = CGSize.zero
 
@@ -12,85 +13,87 @@ struct MiniPlayerView: View {
     var body: some View {
         if let song = playerManager.currentSong {
             VStack(spacing: 0) {
-                Divider() // Separator line
+                ProgressView(value: playerManager.currentTime, total: max(playerManager.duration, 1))
+                    .tint(themeManager.currentTheme.primaryColor)
+                    .scaleEffect(x: 1, y: 0.7, anchor: .center)
 
-                HStack {
-                    // Display album art using CachedAsyncImage in its original shape
+                HStack(spacing: 12) {
                     CachedAsyncImage(
                         url: URL(string: song.artworkURL ?? ""),
                         fallback: AnyView(
                             Image(systemName: "music.note")
-                                .font(.largeTitle)
-                                .foregroundColor(.gray)
+                                .font(.title2)
+                                .foregroundColor(themeManager.currentTheme.primaryColor)
                         )
                     )
-                    .frame(width: 50, height: 50)
-                    // Removed any clipping or corner rounding
+                    .frame(width: 52, height: 52)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: .black.opacity(0.18), radius: 6, y: 3)
 
-                    VStack(alignment: .leading) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(song.title)
                             .font(.headline)
-                            .foregroundColor(.primary)
+                            .foregroundColor(themeManager.currentTheme.textColor)
                             .lineLimit(1)
                         Text(song.artist)
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(themeManager.currentTheme.textColor.opacity(0.68))
                             .lineLimit(1)
                     }
-                    .padding(.leading, 8)
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
-                    HStack(spacing: 20) {
-                        Button(action: { playerManager.previous() }) {
-                            Image(systemName: "backward.fill")
-                                .font(.title3)
-                                .foregroundColor(.primary)
+                    HStack(spacing: 14) {
+                        Button(action: { playerManager.skipBackward() }) {
+                            Image(systemName: "gobackward.15")
                         }
-                        Button(action: {
-                            if playerManager.isPlaying {
-                                playerManager.pause()
-                            } else {
-                                playerManager.resume()
-                            }
-                        }) {
+                        Button(action: playerManager.togglePlayPause) {
                             Image(systemName: playerManager.isPlaying ? "pause.fill" : "play.fill")
-                                .font(.title3)
-                                .foregroundColor(.primary)
+                                .font(.title3.bold())
+                                .frame(width: 36, height: 36)
+                                .background(themeManager.currentTheme.primaryColor)
+                                .foregroundColor(.white)
+                                .clipShape(Circle())
                         }
-                        Button(action: { playerManager.next() }) {
-                            Image(systemName: "forward.fill")
-                                .font(.title3)
-                                .foregroundColor(.primary)
+                        Button(action: { playerManager.skipForward() }) {
+                            Image(systemName: "goforward.15")
                         }
                     }
-                    .padding(.trailing, 8)
+                    .font(.title3)
+                    .foregroundColor(themeManager.currentTheme.primaryColor)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
-                .onTapGesture {
-                    showFullPlayer = true
-                }
+                .onTapGesture { showFullPlayer = true }
                 .gesture(
                     DragGesture()
-                        .updating($dragOffset) { value, state, _ in
-                            state = value.translation
-                        }
+                        .updating($dragOffset) { value, state, _ in state = value.translation }
                         .onEnded { value in
-                            if value.translation.height < -50 {
-                                showFullPlayer = true
-                            }
+                            if value.translation.height < -50 { showFullPlayer = true }
                         }
                 )
             }
-            .background(Color(UIColor.systemBackground))
-            .shadow(radius: 5)
+            .background(miniPlayerBackground)
+            .clipShape(RoundedRectangle(cornerRadius: themeManager.currentTheme.isGlassStyle ? 24 : 0, style: .continuous))
+            .shadow(color: .black.opacity(0.2), radius: 12, y: -4)
             .fullScreenCover(isPresented: $showFullPlayer) {
                 FullPlayerView(playerManager: playerManager)
+                    .environmentObject(themeManager)
             }
         } else {
             EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private var miniPlayerBackground: some View {
+        if themeManager.currentTheme.isGlassStyle {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(themeManager.currentTheme.surfaceColor)
+        } else {
+            Color(UIColor.systemBackground)
         }
     }
 }
