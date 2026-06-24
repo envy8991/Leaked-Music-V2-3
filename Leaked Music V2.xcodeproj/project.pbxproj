@@ -7,21 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CDA14CA12D5C18DE000B7564 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = CDA14CA02D5C18DE000B7564 /* FirebaseAnalytics */; };
-		CDA14CA32D5C18DE000B7564 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = CDA14CA22D5C18DE000B7564 /* FirebaseAuth */; };
-		CDA14CA52D5C18DE000B7564 /* FirebaseAuthCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = CDA14CA42D5C18DE000B7564 /* FirebaseAuthCombine-Community */; };
-		CDA14CA72D5C18DE000B7564 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = CDA14CA62D5C18DE000B7564 /* FirebaseCore */; };
-		CDA14CA92D5C18DE000B7564 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = CDA14CA82D5C18DE000B7564 /* FirebaseDatabase */; };
-		CDA14CAB2D5C18DE000B7564 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = CDA14CAA2D5C18DE000B7564 /* FirebaseFirestore */; };
-		CDA14CAD2D5C18DE000B7564 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = CDA14CAC2D5C18DE000B7564 /* FirebaseStorage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		CDA14C442D5C1490000B7564 /* Leaked Music V2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Leaked Music V2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CDA14C442D5C1490000B7564 /* MovieBox Host.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MovieBox Host.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CDA14C462D5C1490000B7564 /* Leaked Music V2 */ = {
+		CDA14C462D5C1490000B7564 /* MovieBox Host */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Leaked Music V2";
 			sourceTree = "<group>";
@@ -33,13 +26,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CDA14CA92D5C18DE000B7564 /* FirebaseDatabase in Frameworks */,
-				CDA14CA12D5C18DE000B7564 /* FirebaseAnalytics in Frameworks */,
-				CDA14CA52D5C18DE000B7564 /* FirebaseAuthCombine-Community in Frameworks */,
-				CDA14CA72D5C18DE000B7564 /* FirebaseCore in Frameworks */,
-				CDA14CAD2D5C18DE000B7564 /* FirebaseStorage in Frameworks */,
-				CDA14CA32D5C18DE000B7564 /* FirebaseAuth in Frameworks */,
-				CDA14CAB2D5C18DE000B7564 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -49,7 +35,7 @@
 		CDA14C3B2D5C1490000B7564 = {
 			isa = PBXGroup;
 			children = (
-				CDA14C462D5C1490000B7564 /* Leaked Music V2 */,
+				CDA14C462D5C1490000B7564 /* MovieBox Host */,
 				CDA14C452D5C1490000B7564 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -57,7 +43,7 @@
 		CDA14C452D5C1490000B7564 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CDA14C442D5C1490000B7564 /* Leaked Music V2.app */,
+				CDA14C442D5C1490000B7564 /* MovieBox Host.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -65,9 +51,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		CDA14C432D5C1490000B7564 /* Leaked Music V2 */ = {
+		CDA14C432D5C1490000B7564 /* MovieBox Host */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CDA14C522D5C1492000B7564 /* Build configuration list for PBXNativeTarget "Leaked Music V2" */;
+			buildConfigurationList = CDA14C522D5C1492000B7564 /* Build configuration list for PBXNativeTarget "MovieBox Host" */;
 			buildPhases = (
 				CDA14C402D5C1490000B7564 /* Sources */,
 				CDA14C412D5C1490000B7564 /* Frameworks */,
@@ -78,20 +64,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				CDA14C462D5C1490000B7564 /* Leaked Music V2 */,
+				CDA14C462D5C1490000B7564 /* MovieBox Host */,
 			);
-			name = "Leaked Music V2";
+			name = "MovieBox Host";
 			packageProductDependencies = (
-				CDA14CA02D5C18DE000B7564 /* FirebaseAnalytics */,
-				CDA14CA22D5C18DE000B7564 /* FirebaseAuth */,
-				CDA14CA42D5C18DE000B7564 /* FirebaseAuthCombine-Community */,
-				CDA14CA62D5C18DE000B7564 /* FirebaseCore */,
-				CDA14CA82D5C18DE000B7564 /* FirebaseDatabase */,
-				CDA14CAA2D5C18DE000B7564 /* FirebaseFirestore */,
-				CDA14CAC2D5C18DE000B7564 /* FirebaseStorage */,
 			);
-			productName = "Leaked Music V2";
-			productReference = CDA14C442D5C1490000B7564 /* Leaked Music V2.app */;
+			productName = "MovieBox Host";
+			productReference = CDA14C442D5C1490000B7564 /* MovieBox Host.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -109,7 +88,7 @@
 					};
 				};
 			};
-			buildConfigurationList = CDA14C3F2D5C1490000B7564 /* Build configuration list for PBXProject "Leaked Music V2" */;
+			buildConfigurationList = CDA14C3F2D5C1490000B7564 /* Build configuration list for PBXProject "MovieBox Host" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -119,14 +98,13 @@
 			mainGroup = CDA14C3B2D5C1490000B7564;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CDA14C452D5C1490000B7564 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				CDA14C432D5C1490000B7564 /* Leaked Music V2 */,
+				CDA14C432D5C1490000B7564 /* MovieBox Host */,
 			);
 		};
 /* End PBXProject section */
@@ -278,7 +256,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Leaked Music V2/Preview Content\"";
 				DEVELOPMENT_TEAM = 6AH76VL9L9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -294,7 +271,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Quinton.Leaked-Music-V22";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.quinton.movieboxhost";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -309,7 +286,6 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"Leaked Music V2/Preview Content\"";
 				DEVELOPMENT_TEAM = 6AH76VL9L9;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -325,7 +301,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Quinton.Leaked-Music-V22";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.quinton.movieboxhost";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -336,7 +312,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CDA14C3F2D5C1490000B7564 /* Build configuration list for PBXProject "Leaked Music V2" */ = {
+		CDA14C3F2D5C1490000B7564 /* Build configuration list for PBXProject "MovieBox Host" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CDA14C502D5C1492000B7564 /* Debug */,
@@ -345,7 +321,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CDA14C522D5C1492000B7564 /* Build configuration list for PBXNativeTarget "Leaked Music V2" */ = {
+		CDA14C522D5C1492000B7564 /* Build configuration list for PBXNativeTarget "MovieBox Host" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CDA14C532D5C1492000B7564 /* Debug */,
@@ -356,54 +332,7 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 11.8.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
 
-/* Begin XCSwiftPackageProductDependency section */
-		CDA14CA02D5C18DE000B7564 /* FirebaseAnalytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
-		};
-		CDA14CA22D5C18DE000B7564 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		CDA14CA42D5C18DE000B7564 /* FirebaseAuthCombine-Community */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseAuthCombine-Community";
-		};
-		CDA14CA62D5C18DE000B7564 /* FirebaseCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCore;
-		};
-		CDA14CA82D5C18DE000B7564 /* FirebaseDatabase */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseDatabase;
-		};
-		CDA14CAA2D5C18DE000B7564 /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
-		CDA14CAC2D5C18DE000B7564 /* FirebaseStorage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CDA14C9F2D5C180A000B7564 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseStorage;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CDA14C3C2D5C1490000B7564 /* Project object */;
 }
