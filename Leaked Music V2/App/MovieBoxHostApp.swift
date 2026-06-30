@@ -11,10 +11,10 @@ struct CrisisEngineApp: App {
 
 struct CrisisEngineView: View {
     @State private var selectedMode = GameMode.collapse
-    @State private var activeScenario: Scenario?
+    @State private var navigationPath: [Scenario] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 LinearGradient(
                     colors: [.black, Color(red: 0.08, green: 0.09, blue: 0.14), Color(red: 0.24, green: 0.08, blue: 0.04)],
@@ -33,7 +33,7 @@ struct CrisisEngineView: View {
                     .padding(20)
                 }
             }
-            .navigationDestination(item: $activeScenario) { scenario in
+            .navigationDestination(for: Scenario.self) { scenario in
                 ScenarioSimulationView(scenario: scenario)
             }
         }
@@ -116,7 +116,7 @@ struct CrisisEngineView: View {
 
                 Button {
                     if selectedMode.isPlayable {
-                        activeScenario = Scenario.collapsePrototype
+                        navigationPath.append(Scenario.collapsePrototype)
                     }
                 } label: {
                     Text(selectedMode.isPlayable ? "Start Collapse Engine" : "Coming After Launch")
