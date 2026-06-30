@@ -158,6 +158,7 @@ struct ScenarioSimulationView: View {
     @State private var selectedStartingCondition: StartingCondition = .baseline
     @State private var showTutorial = true
     @State private var latestEvent: RandomEvent?
+    @State private var pulseMetrics = false
 
     private var completedEndingList: [String] {
         completedEndings.split(separator: ",").map(String.init)
@@ -175,7 +176,10 @@ struct ScenarioSimulationView: View {
                     setupControls
                     worldStatus
                     modifierPicker
-                    if let latestEvent { eventCard(latestEvent) }
+                    if let latestEvent {
+                        eventCard(latestEvent)
+                            .transition(.asymmetric(insertion: .scale(scale: 0.94).combined(with: .opacity), removal: .opacity))
+                    }
                     actionGrid
                     scoringCard
                     eventLog
@@ -302,13 +306,18 @@ struct ScenarioSimulationView: View {
 
     private var worldStatus: some View {
         VStack(spacing: 14) {
-            MetricRow(title: "Global Stability", value: state.stability, color: .green, icon: "shield.lefthalf.filled", danger: state.stability < 25)
-            MetricRow(title: "Public Panic", value: state.panic, color: .red, icon: "exclamationmark.triangle.fill", danger: state.panic > 75)
-            MetricRow(title: "Resource Pressure", value: state.resources, color: .orange, icon: "shippingbox.fill", danger: state.resources > 82)
-            MetricRow(title: "Crisis Awareness", value: state.awareness, color: .blue, icon: "eye.fill", danger: state.awareness > 72)
+            MetricRow(title: "Global Stability", value: state.stability, color: .green, icon: "shield.lefthalf.filled", danger: state.stability < 25, pulse: pulseMetrics)
+            MetricRow(title: "Public Panic", value: state.panic, color: .red, icon: "exclamationmark.triangle.fill", danger: state.panic > 75, pulse: pulseMetrics)
+            MetricRow(title: "Resource Pressure", value: state.resources, color: .orange, icon: "shippingbox.fill", danger: state.resources > 82, pulse: pulseMetrics)
+            MetricRow(title: "Crisis Awareness", value: state.awareness, color: .blue, icon: "eye.fill", danger: state.awareness > 72, pulse: pulseMetrics)
         }
         .padding(16)
         .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 20))
+        .animation(.spring(response: 0.45, dampingFraction: 0.76), value: pulseMetrics)
+        .animation(.easeInOut(duration: 0.35), value: state.stability)
+        .animation(.easeInOut(duration: 0.35), value: state.panic)
+        .animation(.easeInOut(duration: 0.35), value: state.resources)
+        .animation(.easeInOut(duration: 0.35), value: state.awareness)
     }
 
     private var modifierPicker: some View {
@@ -319,7 +328,11 @@ struct ScenarioSimulationView: View {
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 ForEach(PolicyModifier.allCases) { modifier in
-                    Button { selectedModifier = modifier } label: {
+                    Button {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                            selectedModifier = modifier
+                        }
+                    } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             Label(modifier.title, systemImage: modifier.icon)
                                 .font(.headline)
@@ -348,7 +361,7 @@ struct ScenarioSimulationView: View {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 155), spacing: 12)], spacing: 12) {
                 ForEach(CrisisAction.allCases) { action in
                     Button { apply(action) } label: { ActionCard(action: action) }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PressableCardButtonStyle())
                         .disabled(state.ending != nil)
                         .opacity(state.ending == nil ? 1 : 0.45)
                 }
@@ -361,8 +374,10 @@ struct ScenarioSimulationView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Current score: \(state.score)")
                     .font(.headline.monospacedDigit())
+                    .contentTransition(.numericText())
                 Text("Best score: \(bestScore)")
                     .font(.subheadline.monospacedDigit())
+                    .contentTransition(.numericText())
                 Text("Completed endings: \(completedEndingList.isEmpty ? "None yet" : completedEndingList.joined(separator: ", "))")
                     .font(.caption)
                     .foregroundStyle(.white.opacity(0.70))
@@ -395,21 +410,24 @@ struct ScenarioSimulationView: View {
 
     private func apply(_ action: CrisisAction) {
         guard state.ending == nil else { return }
-        state.day += 1
-        var effects = action.effects.applying(selectedModifier).applying(selectedDifficulty)
-        let event = RandomEvent.event(for: state.day, action: action)
-        effects = effects.combining(event.effects)
-        latestEvent = event
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
+            state.day += 1
+            var effects = action.effects.applying(selectedModifier).applying(selectedDifficulty)
+            let event = RandomEvent.event(for: state.day, action: action)
+            effects = effects.combining(event.effects)
+            latestEvent = event
 
-        state.stability = clamp(state.stability + effects.stability)
-        state.panic = clamp(state.panic + effects.panic)
-        state.resources = clamp(state.resources + effects.resources)
-        state.awareness = clamp(state.awareness + effects.awareness)
-        state.score += Int(Double(action.scoreValue + selectedModifier.scoreBonus + event.scoreBonus) * selectedDifficulty.scoreMultiplier) + selectedStartingCondition.scoreBonus
-        state.phase = CollapsePhase.phase(for: state.day)
+            state.stability = clamp(state.stability + effects.stability)
+            state.panic = clamp(state.panic + effects.panic)
+            state.resources = clamp(state.resources + effects.resources)
+            state.awareness = clamp(state.awareness + effects.awareness)
+            state.score += Int(Double(action.scoreValue + selectedModifier.scoreBonus + event.scoreBonus) * selectedDifficulty.scoreMultiplier) + selectedStartingCondition.scoreBonus
+            state.phase = CollapsePhase.phase(for: state.day)
+            pulseMetrics.toggle()
 
-        state.log.append("Day \(state.day): \(action.logLine) \(event.logLine)")
-        evaluateEnding()
+            state.log.append("Day \(state.day): \(action.logLine) \(event.logLine)")
+            evaluateEnding()
+        }
     }
 
     private func evaluateEnding() {
@@ -466,12 +484,22 @@ struct ActionCard: View {
     }
 }
 
+struct PressableCardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .brightness(configuration.isPressed ? 0.05 : 0)
+            .animation(.spring(response: 0.22, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+}
+
 struct MetricRow: View {
     let title: String
     let value: Double
     let color: Color
     let icon: String
     let danger: Bool
+    let pulse: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -484,6 +512,7 @@ struct MetricRow: View {
                     if danger { Image(systemName: "exclamationmark.octagon.fill") }
                     Text("\(Int(value))%")
                         .font(.headline.monospacedDigit())
+                        .contentTransition(.numericText())
                 }
                 .foregroundStyle(danger ? .red : color)
             }
@@ -492,6 +521,9 @@ struct MetricRow: View {
                 .accessibilityLabel(title)
                 .accessibilityValue("\(Int(value)) percent")
         }
+        .padding(danger ? 8 : 0)
+        .background(danger ? Color.red.opacity(pulse ? 0.18 : 0.10) : .clear, in: RoundedRectangle(cornerRadius: 14))
+        .scaleEffect(danger && pulse ? 1.015 : 1)
     }
 }
 
