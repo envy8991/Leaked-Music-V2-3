@@ -46,6 +46,8 @@ The current vertical slice includes:
 11. Unlockable starting conditions tied to completed endings.
 12. A chain-reaction log that records how each player choice and event changes the simulation.
 13. Stronger danger feedback when metrics cross risky thresholds.
+14. Animated metric changes, event-card transitions, numeric score/metric transitions, and press feedback on action cards.
+15. A privacy manifest declaring no data collection or tracking for the current offline vertical slice.
 
 ## How to Test
 
@@ -102,14 +104,15 @@ The next step is to polish Collapse Engine, then expand the shared simulation fo
 - [ ] Add sound effects and music direction.
 - [ ] Add animations for metric changes, danger states, and major events.
 - [x] Improve accessibility basics with labels, values, and color-safe danger icons.
+- [x] Add first-pass animations for metric changes, danger states, event reveals, and action-card press states.
 
 ### Phase 5 — Prepare for Release
 
-- [ ] Add app metadata, privacy notes, and release checklist.
+- [x] Add baseline app metadata, privacy notes, and release checklist.
 - [ ] Test on real iPhone and iPad devices.
 - [ ] Profile performance and memory usage.
 - [ ] Create screenshots and store description copy.
-- [ ] Decide whether the first public release includes only Collapse Engine or also one additional mode.
+- [x] Decide whether the first public release includes only Collapse Engine or also one additional mode.
 
 ### Phase 6 — Future Modes
 
@@ -138,17 +141,33 @@ Keeping the README current will make it easier to track progress, onboard collab
 - Build and run the `Crisis Engine` target.
 - The current SwiftUI app entry point is `CrisisEngineApp`.
 - Collapse Engine now lives in a single SwiftUI file for speed of iteration; a future cleanup should split game data, simulation logic, persistence, setup/progression rules, and UI into separate files.
+- First public release scope is **Collapse Engine only**. The other modes should remain visible as future expansions until the vertical slice is validated on simulator and real devices.
+- Current privacy posture: the app is offline-only, uses local `@AppStorage` for best score and completed endings, and declares no tracking or collected data in `Crisis Engine/Resources/PrivacyInfo.xcprivacy`.
+
+## Release Checklist
+
+- [x] Confirm app display name is `Crisis Engine`.
+- [x] Confirm bundle identifier is set for the app target.
+- [x] Add an Apple privacy manifest for the current no-data-collection build.
+- [x] Document first-release scope as Collapse Engine only.
+- [ ] Build and archive on local macOS with Xcode.
+- [ ] Run the smoke-test checklist on at least one small iPhone simulator, one large iPhone simulator, and one iPad simulator.
+- [ ] Run the smoke-test checklist on real iPhone and iPad hardware.
+- [ ] Capture App Store screenshots after final visual polish.
+- [ ] Draft App Store subtitle, description, keywords, support URL, and age-rating notes.
+- [ ] Profile launch time, scrolling smoothness, and memory usage on the oldest supported device.
 
 ## Completed in This Update
 
-- Added Guided, Standard, and Hardline difficulty levels with different collapse thresholds, awareness limits, metric effect multipliers, and score multipliers.
-- Added a Run Setup panel where difficulty and starting condition can be selected before the first action.
-- Added unlockable starting conditions: Fragile Grid, Public Distrust, and Mutual Aid Network.
-- Updated scenario objectives, tutorial text, scoring, and ending checks to respect the selected setup.
+- Added animated metric/progress changes, numeric transitions, event-card reveals, danger pulsing, and action-card press feedback for the Collapse Engine play loop.
+- Added an Apple privacy manifest for the current offline/no-tracking build.
+- Added a release checklist and documented that the first public release should ship with Collapse Engine only while future modes remain expansions.
+- Kept prior completed work: Guided, Standard, and Hardline difficulty levels; the Run Setup panel; unlockable starting conditions; setup-aware objectives, tutorial text, scoring, and ending checks.
 
 ## Known Limitations and Follow-Up Tasks
 
 - This repository does not include automated XCTest coverage yet.
 - Difficulty levels and unlockable starting conditions are implemented for Collapse Engine, but still need simulator balancing passes.
-- Sound, animation polish, release metadata, and screenshots are still needed.
+- Sound direction, custom icon/logo work, launch-screen polish, screenshots, and store copy are still needed.
 - Real-device QA is still required before release.
+- The project still needs to be built and archived on a local macOS/Xcode environment before any release submission.
