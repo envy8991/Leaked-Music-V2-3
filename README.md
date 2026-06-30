@@ -42,8 +42,10 @@ The current vertical slice includes:
    - Coordinated Recovery
    - Contained Crisis
 9. End-of-run scoring, local best-score tracking, and completed-ending tracking.
-10. A chain-reaction log that records how each player choice and event changes the simulation.
-11. Stronger danger feedback when metrics cross risky thresholds.
+10. Three difficulty levels that adjust thresholds, effect intensity, and score multipliers.
+11. Unlockable starting conditions tied to completed endings.
+12. A chain-reaction log that records how each player choice and event changes the simulation.
+13. Stronger danger feedback when metrics cross risky thresholds.
 
 ## How to Test
 
@@ -55,13 +57,16 @@ Use this smoke-test checklist after meaningful changes:
 4. Select every mode card and confirm only Collapse Engine is playable.
 5. Start Collapse Engine.
 6. Dismiss the tutorial.
-7. Select every policy modifier.
-8. Use every pressure-point action at least once.
-9. Confirm the chain-reaction log records actions and random events.
-10. Continue a run until an ending appears.
-11. Start a new run from the ending card.
-12. Confirm best score and completed endings persist after relaunching the app.
-13. Repeat on a small iPhone and iPad simulator to check layout wrapping and scrolling.
+7. Select every difficulty level before taking the first action.
+8. Confirm locked starting conditions explain their unlock requirements.
+9. Select every policy modifier.
+10. Use every pressure-point action at least once.
+11. Confirm the chain-reaction log records actions and random events.
+12. Continue a run until an ending appears.
+13. Start a new run from the ending card.
+14. Confirm best score and completed endings persist after relaunching the app.
+15. Confirm newly unlocked starting conditions become selectable after completing their required endings.
+16. Repeat on a small iPhone and iPad simulator to check layout wrapping and scrolling.
 
 ## Roadmap
 
@@ -87,8 +92,8 @@ The next step is to polish Collapse Engine, then expand the shared simulation fo
 
 - [x] Add modifiers that change action effects.
 - [x] Add randomized events so each run feels different.
-- [ ] Add difficulty levels.
-- [ ] Add unlockable scenarios or starting conditions.
+- [x] Add difficulty levels.
+- [x] Add unlockable scenarios or starting conditions.
 - [x] Track best scores and completed endings locally.
 
 ### Phase 4 — Improve Presentation
@@ -132,11 +137,18 @@ Keeping the README current will make it easier to track progress, onboard collab
 - Open `Crisis Engine.xcodeproj` in Xcode.
 - Build and run the `Crisis Engine` target.
 - The current SwiftUI app entry point is `CrisisEngineApp`.
-- Collapse Engine now lives in a single SwiftUI file for speed of iteration; a future cleanup should split game data, simulation logic, persistence, and UI into separate files.
+- Collapse Engine now lives in a single SwiftUI file for speed of iteration; a future cleanup should split game data, simulation logic, persistence, setup/progression rules, and UI into separate files.
+
+## Completed in This Update
+
+- Added Guided, Standard, and Hardline difficulty levels with different collapse thresholds, awareness limits, metric effect multipliers, and score multipliers.
+- Added a Run Setup panel where difficulty and starting condition can be selected before the first action.
+- Added unlockable starting conditions: Fragile Grid, Public Distrust, and Mutual Aid Network.
+- Updated scenario objectives, tutorial text, scoring, and ending checks to respect the selected setup.
 
 ## Known Limitations and Follow-Up Tasks
 
 - This repository does not include automated XCTest coverage yet.
-- Difficulty levels and unlockable starting conditions are still planned.
+- Difficulty levels and unlockable starting conditions are implemented for Collapse Engine, but still need simulator balancing passes.
 - Sound, animation polish, release metadata, and screenshots are still needed.
 - Real-device QA is still required before release.

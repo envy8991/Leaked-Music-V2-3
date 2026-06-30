@@ -154,6 +154,8 @@ struct ScenarioSimulationView: View {
     @AppStorage("collapseEngineCompletedEndings") private var completedEndings = ""
     @State private var state = CollapseRunState()
     @State private var selectedModifier: PolicyModifier = .none
+    @State private var selectedDifficulty: DifficultyLevel = .standard
+    @State private var selectedStartingCondition: StartingCondition = .baseline
     @State private var showTutorial = true
     @State private var latestEvent: RandomEvent?
 
@@ -170,6 +172,7 @@ struct ScenarioSimulationView: View {
                     header
                     if showTutorial { tutorialCard }
                     objectiveCard
+                    setupControls
                     worldStatus
                     modifierPicker
                     if let latestEvent { eventCard(latestEvent) }
@@ -198,7 +201,7 @@ struct ScenarioSimulationView: View {
                 .foregroundStyle(.white)
                 .accessibilityAddTraits(.isHeader)
 
-            Text("Day \(state.day) of \(CollapseRunState.maxDays) · \(state.phase.title)")
+            Text("Day \(state.day) of \(CollapseRunState.maxDays) · \(state.phase.title) · \(selectedDifficulty.title)")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.white.opacity(0.72))
         }
@@ -207,8 +210,9 @@ struct ScenarioSimulationView: View {
     private var tutorialCard: some View {
         InfoPanel(title: "Commander Briefing", icon: "lightbulb.fill", color: .yellow) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Goal: push global stability below 18 by day 12 without letting awareness hit 92. Ending quality depends on panic, resource pressure, stability, and your final score.")
-                Text("Tip: modifiers change every action. Each action also nudges the world forward and can trigger randomized events.")
+                Text("Goal: push global stability below the collapse threshold by day 12 without letting awareness reach the recovery threshold. Ending quality depends on panic, resource pressure, stability, and your final score.")
+                Text("Tip: difficulty changes scoring and thresholds. Starting conditions alter the opening state and unlock after completed endings.")
+                Text("Modifiers change every action. Each action also nudges the world forward and can trigger randomized events.")
                 Button("Dismiss Tutorial") { showTutorial = false }
                     .font(.callout.bold())
                     .foregroundStyle(.yellow)
@@ -231,12 +235,69 @@ struct ScenarioSimulationView: View {
                         .padding(.vertical, 10)
                         .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
                 } else {
-                    ObjectiveRow(text: "Collapse stability below 18", isComplete: state.stability < 18)
-                    ObjectiveRow(text: "Keep awareness below 92", isComplete: state.awareness < 92)
+                    ObjectiveRow(text: "Collapse stability below \(Int(selectedDifficulty.collapseThreshold))", isComplete: state.stability < selectedDifficulty.collapseThreshold)
+                    ObjectiveRow(text: "Keep awareness below \(Int(selectedDifficulty.awarenessLimit))", isComplete: state.awareness < selectedDifficulty.awarenessLimit)
                     ObjectiveRow(text: "Reach day 12 or force an early ending", isComplete: state.day >= CollapseRunState.maxDays)
                 }
             }
         }
+    }
+
+    private var setupControls: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Run Setup")
+                .font(.title2.bold())
+                .foregroundStyle(.white)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Difficulty")
+                    .font(.headline)
+                    .foregroundStyle(.white.opacity(0.86))
+
+                ForEach(DifficultyLevel.allCases) { difficulty in
+                    SetupOptionButton(
+                        title: difficulty.title,
+                        subtitle: difficulty.description,
+                        icon: difficulty.icon,
+                        color: difficulty.color,
+                        isSelected: selectedDifficulty == difficulty,
+                        isLocked: false
+                    ) {
+                        guard state.day == 1 && state.ending == nil else { return }
+                        selectedDifficulty = difficulty
+                        resetRun(keepSetup: true)
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Starting Condition")
+                    .font(.headline)
+                    .foregroundStyle(.white.opacity(0.86))
+
+                ForEach(StartingCondition.allCases) { condition in
+                    let locked = !condition.isUnlocked(completedEndings: completedEndingList)
+                    SetupOptionButton(
+                        title: condition.title,
+                        subtitle: locked ? condition.unlockText : condition.description,
+                        icon: condition.icon,
+                        color: condition.color,
+                        isSelected: selectedStartingCondition == condition,
+                        isLocked: locked
+                    ) {
+                        guard !locked, state.day == 1 && state.ending == nil else { return }
+                        selectedStartingCondition = condition
+                        resetRun(keepSetup: true)
+                    }
+                }
+            }
+
+            Text(state.day == 1 && state.ending == nil ? "Setup choices can be changed before your first action." : "Setup locks after the first action until you start a new run.")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.62))
+        }
+        .padding(16)
+        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 20))
     }
 
     private var worldStatus: some View {
@@ -335,7 +396,7 @@ struct ScenarioSimulationView: View {
     private func apply(_ action: CrisisAction) {
         guard state.ending == nil else { return }
         state.day += 1
-        var effects = action.effects.applying(selectedModifier)
+        var effects = action.effects.applying(selectedModifier).applying(selectedDifficulty)
         let event = RandomEvent.event(for: state.day, action: action)
         effects = effects.combining(event.effects)
         latestEvent = event
@@ -344,7 +405,7 @@ struct ScenarioSimulationView: View {
         state.panic = clamp(state.panic + effects.panic)
         state.resources = clamp(state.resources + effects.resources)
         state.awareness = clamp(state.awareness + effects.awareness)
-        state.score += action.scoreValue + selectedModifier.scoreBonus + event.scoreBonus
+        state.score += Int(Double(action.scoreValue + selectedModifier.scoreBonus + event.scoreBonus) * selectedDifficulty.scoreMultiplier) + selectedStartingCondition.scoreBonus
         state.phase = CollapsePhase.phase(for: state.day)
 
         state.log.append("Day \(state.day): \(action.logLine) \(event.logLine)")
@@ -352,13 +413,13 @@ struct ScenarioSimulationView: View {
     }
 
     private func evaluateEnding() {
-        if state.awareness >= 92 {
+        if state.awareness >= selectedDifficulty.awarenessLimit {
             state.ending = .coordinatedRecovery(score: state.score)
-        } else if state.stability <= 10 && state.panic >= 78 && state.resources >= 78 {
+        } else if state.stability <= selectedDifficulty.totalCollapseThreshold && state.panic >= selectedDifficulty.panicThreshold && state.resources >= selectedDifficulty.resourceThreshold {
             state.score += 500
             state.ending = .totalCollapse(score: state.score)
         } else if state.day >= CollapseRunState.maxDays {
-            if state.stability < 18 {
+            if state.stability < selectedDifficulty.collapseThreshold {
                 state.score += 250
                 state.ending = .unstableSurvival(score: state.score)
             } else {
@@ -367,9 +428,14 @@ struct ScenarioSimulationView: View {
         }
     }
 
-    private func resetRun() {
-        state = CollapseRunState()
+    private func resetRun(keepSetup: Bool = false) {
+        state = CollapseRunState(startingCondition: selectedStartingCondition)
         selectedModifier = .none
+        if !keepSetup {
+            selectedDifficulty = .standard
+            selectedStartingCondition = .baseline
+            state = CollapseRunState(startingCondition: .baseline)
+        }
         showTutorial = true
         latestEvent = nil
     }
@@ -461,6 +527,47 @@ struct ObjectiveRow: View {
     }
 }
 
+struct SetupOptionButton: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+    let isSelected: Bool
+    let isLocked: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: isLocked ? "lock.fill" : icon)
+                    .font(.headline)
+                    .foregroundStyle(isLocked ? .gray : color)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.68))
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? color : .white.opacity(0.35))
+            }
+            .padding(12)
+            .background(isSelected ? color.opacity(0.18) : .white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(isSelected ? color : .white.opacity(0.10)))
+            .opacity(isLocked ? 0.58 : 1)
+        }
+        .disabled(isLocked)
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+    }
+}
+
 struct StatusPill: View {
     let text: String
     let color: Color
@@ -487,6 +594,15 @@ struct CollapseRunState {
     var phase = CollapsePhase.opening
     var ending: CollapseEnding?
     var log = ["Day 1: Small pressure points appear across the world. Choose a pressure point to begin the run."]
+
+    init(startingCondition: StartingCondition = .baseline) {
+        stability = startingCondition.startingStability
+        panic = startingCondition.startingPanic
+        resources = startingCondition.startingResources
+        awareness = startingCondition.startingAwareness
+        score = startingCondition.openingScore
+        log = ["Day 1: \(startingCondition.openingLog)"]
+    }
 }
 
 struct MetricEffects {
@@ -501,6 +617,15 @@ struct MetricEffects {
             panic: panic * modifier.panicMultiplier,
             resources: resources * modifier.resourceMultiplier,
             awareness: awareness * modifier.awarenessMultiplier
+        )
+    }
+
+    func applying(_ difficulty: DifficultyLevel) -> MetricEffects {
+        MetricEffects(
+            stability: stability * difficulty.stabilityEffectMultiplier,
+            panic: panic * difficulty.panicEffectMultiplier,
+            resources: resources * difficulty.resourceEffectMultiplier,
+            awareness: awareness * difficulty.awarenessEffectMultiplier
         )
     }
 
@@ -557,6 +682,129 @@ enum CollapseEnding: Equatable {
         case .unstableSurvival: .orange
         case .coordinatedRecovery: .blue
         case .containedCrisis: .green
+        }
+    }
+}
+
+enum DifficultyLevel: String, CaseIterable, Identifiable {
+    case guided, standard, hardline
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .guided: "Guided"
+        case .standard: "Standard"
+        case .hardline: "Hardline"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .guided: "More room for awareness mistakes with gentler scoring."
+        case .standard: "Balanced thresholds for the intended vertical slice."
+        case .hardline: "Sharper detection risk, harsher resource pressure, better score potential."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .guided: "leaf.circle.fill"
+        case .standard: "dial.medium.fill"
+        case .hardline: "flame.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .guided: .mint
+        case .standard: .cyan
+        case .hardline: .red
+        }
+    }
+
+    var collapseThreshold: Double { self == .hardline ? 15 : (self == .guided ? 22 : 18) }
+    var totalCollapseThreshold: Double { self == .hardline ? 8 : (self == .guided ? 14 : 10) }
+    var awarenessLimit: Double { self == .hardline ? 84 : (self == .guided ? 96 : 92) }
+    var panicThreshold: Double { self == .guided ? 72 : 78 }
+    var resourceThreshold: Double { self == .guided ? 72 : 78 }
+    var stabilityEffectMultiplier: Double { self == .guided ? 0.92 : (self == .hardline ? 1.08 : 1) }
+    var panicEffectMultiplier: Double { self == .guided ? 0.90 : (self == .hardline ? 1.12 : 1) }
+    var resourceEffectMultiplier: Double { self == .guided ? 0.90 : (self == .hardline ? 1.12 : 1) }
+    var awarenessEffectMultiplier: Double { self == .guided ? 0.84 : (self == .hardline ? 1.18 : 1) }
+    var scoreMultiplier: Double { self == .guided ? 0.85 : (self == .hardline ? 1.25 : 1) }
+}
+
+enum StartingCondition: String, CaseIterable, Identifiable {
+    case baseline, fragileGrid, publicDistrust, mutualAidNetwork
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .baseline: "Baseline World"
+        case .fragileGrid: "Fragile Grid"
+        case .publicDistrust: "Public Distrust"
+        case .mutualAidNetwork: "Mutual Aid Network"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .baseline: "Default opening state for Collapse Engine."
+        case .fragileGrid: "Lower stability and higher resource pressure from day one."
+        case .publicDistrust: "Panic starts higher, but awareness is slower to organize."
+        case .mutualAidNetwork: "Communities soften shocks, but visibility rises early."
+        }
+    }
+
+    var unlockText: String {
+        switch self {
+        case .baseline: description
+        case .fragileGrid: "Unlock by completing any ending."
+        case .publicDistrust: "Unlock by completing Total Collapse or Unstable Survival."
+        case .mutualAidNetwork: "Unlock by completing Coordinated Recovery or Contained Crisis."
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .baseline: "globe"
+        case .fragileGrid: "bolt.trianglebadge.exclamationmark.fill"
+        case .publicDistrust: "person.2.slash.fill"
+        case .mutualAidNetwork: "hands.sparkles.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .baseline: .cyan
+        case .fragileGrid: .orange
+        case .publicDistrust: .purple
+        case .mutualAidNetwork: .mint
+        }
+    }
+
+    var startingStability: Double { self == .fragileGrid ? 74 : (self == .mutualAidNetwork ? 86 : 82) }
+    var startingPanic: Double { self == .publicDistrust ? 24 : (self == .mutualAidNetwork ? 8 : 12) }
+    var startingResources: Double { self == .fragileGrid ? 70 : (self == .mutualAidNetwork ? 50 : 58) }
+    var startingAwareness: Double { self == .publicDistrust ? 4 : (self == .mutualAidNetwork ? 18 : 8) }
+    var openingScore: Int { self == .baseline ? 0 : 40 }
+    var scoreBonus: Int { self == .baseline ? 0 : 6 }
+
+    var openingLog: String {
+        switch self {
+        case .baseline: "Small pressure points appear across the world. Choose a pressure point to begin the run."
+        case .fragileGrid: "A fragile energy grid is already straining hospitals, ports, and fuel distribution."
+        case .publicDistrust: "Public trust is low before the first shock, making coordination brittle and rumor-prone."
+        case .mutualAidNetwork: "Local support networks are active early, cushioning harm while making patterns more visible."
+        }
+    }
+
+    func isUnlocked(completedEndings: [String]) -> Bool {
+        switch self {
+        case .baseline: true
+        case .fragileGrid: !completedEndings.isEmpty
+        case .publicDistrust: completedEndings.contains("Ending: Total Collapse") || completedEndings.contains("Ending: Unstable Survival")
+        case .mutualAidNetwork: completedEndings.contains("Ending: Coordinated Recovery") || completedEndings.contains("Ending: Contained Crisis")
         }
     }
 }
