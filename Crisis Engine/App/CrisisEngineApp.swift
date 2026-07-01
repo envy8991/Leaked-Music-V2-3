@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct CrisisEngineApp: App {
@@ -12,12 +13,16 @@ struct CrisisEngineApp: App {
 struct CrisisEngineView: View {
     @State private var selectedMode = GameMode.collapse
     @State private var navigationPath: [Scenario] = []
+    @State private var menuPulse = false
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ZStack {
                 AppTheme.backgroundGradient
                     .ignoresSafeArea()
+                AnimatedBackdrop(intensity: selectedMode.isPlayable ? 0.85 : 0.45)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
@@ -34,6 +39,7 @@ struct CrisisEngineView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear { menuPulse = true }
     }
 
     private var header: some View {
@@ -49,9 +55,12 @@ struct CrisisEngineView: View {
 
             HStack(spacing: 10) {
                 StatusPill(text: "Launch mode: Collapse Engine", color: .orange, icon: "play.fill")
+                    .scaleEffect(menuPulse ? 1.02 : 0.98)
                 StatusPill(text: "Vertical slice", color: .cyan, icon: "checkmark.seal.fill")
+                    .scaleEffect(menuPulse ? 0.98 : 1.02)
             }
             .fixedSize(horizontal: false, vertical: true)
+            .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: menuPulse)
         }
     }
 
@@ -161,6 +170,8 @@ struct ScenarioSimulationView: View {
     @State private var pulseMetrics = false
     @State private var recentAction: CrisisAction?
     @State private var selectedHotspot: WorldHotspot? = WorldHotspot.hotspots.first
+    @State private var inspectedAction: CrisisAction? = .climateShock
+    @State private var eventBurst = false
 
     private var completedEndingList: [String] {
         completedEndings.split(separator: ",").map(String.init)
@@ -169,6 +180,9 @@ struct ScenarioSimulationView: View {
     var body: some View {
         ZStack {
             AppTheme.backgroundGradient.ignoresSafeArea()
+            AnimatedBackdrop(intensity: state.ending == nil ? 1 : 0.35)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -179,6 +193,7 @@ struct ScenarioSimulationView: View {
                     setupControls
                     worldStatus
                     modifierPicker
+                    tacticalConsole
                     if let latestEvent {
                         eventCard(latestEvent)
                             .transition(.asymmetric(insertion: .scale(scale: 0.94).combined(with: .opacity), removal: .opacity))
@@ -273,7 +288,8 @@ struct ScenarioSimulationView: View {
             CrisisWorldMap(
                 state: state,
                 recentAction: recentAction,
-                selectedHotspot: $selectedHotspot
+                selectedHotspot: $selectedHotspot,
+                eventBurst: eventBurst
             )
             .frame(height: 310)
 
@@ -394,6 +410,50 @@ struct ScenarioSimulationView: View {
         }
     }
 
+
+    private var tacticalConsole: some View {
+        let action = inspectedAction ?? CrisisAction.climateShock
+        let previewEffects = action.effects.applying(selectedModifier).applying(selectedDifficulty)
+
+        return InfoPanel(title: "Tactical Console", icon: "slider.horizontal.3", color: action.color) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: action.icon)
+                        .font(.title2)
+                        .foregroundStyle(action.color)
+                        .frame(width: 34, height: 34)
+                        .background(action.color.opacity(0.16), in: Circle())
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(action.title)
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                        Text("Select any pressure point below to preview its adjusted impact before committing the turn.")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.68))
+                    }
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    EffectChip(title: "Stability", value: previewEffects.stability, color: .green)
+                    EffectChip(title: "Panic", value: previewEffects.panic, color: .red)
+                    EffectChip(title: "Resources", value: previewEffects.resources, color: .orange)
+                    EffectChip(title: "Awareness", value: previewEffects.awareness, color: .blue)
+                }
+
+                Button { apply(action) } label: {
+                    Label(state.ending == nil ? "Execute Highlighted Pressure Point" : "Run Complete", systemImage: state.ending == nil ? "bolt.fill" : "checkmark.seal.fill")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(state.ending == nil ? action.color.opacity(0.82) : .gray.opacity(0.45), in: RoundedRectangle(cornerRadius: 14))
+                        .foregroundStyle(.white)
+                }
+                .disabled(state.ending != nil)
+            }
+        }
+    }
+
     private var actionGrid: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Pressure Points")
@@ -402,7 +462,11 @@ struct ScenarioSimulationView: View {
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 155), spacing: 12)], spacing: 12) {
                 ForEach(CrisisAction.allCases) { action in
-                    Button { apply(action) } label: { ActionCard(action: action) }
+                    Button {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                            inspectedAction = action
+                        }
+                    } label: { ActionCard(action: action, isHighlighted: inspectedAction == action) }
                         .buttonStyle(PressableCardButtonStyle())
                         .disabled(state.ending != nil)
                         .opacity(state.ending == nil ? 1 : 0.45)
@@ -459,6 +523,9 @@ struct ScenarioSimulationView: View {
             effects = effects.combining(event.effects)
             latestEvent = event
             recentAction = action
+            inspectedAction = action
+            eventBurst.toggle()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
             state.stability = clamp(state.stability + effects.stability)
             state.panic = clamp(state.panic + effects.panic)
@@ -501,6 +568,8 @@ struct ScenarioSimulationView: View {
         latestEvent = nil
         recentAction = nil
         selectedHotspot = WorldHotspot.hotspots.first
+        inspectedAction = .climateShock
+        eventBurst = false
     }
 
     private func clamp(_ value: Double) -> Double { min(100, max(0, value)) }
@@ -510,6 +579,7 @@ struct CrisisWorldMap: View {
     let state: CollapseRunState
     let recentAction: CrisisAction?
     @Binding var selectedHotspot: WorldHotspot?
+    let eventBurst: Bool
 
     private var routeOpacity: Double {
         min(0.95, 0.30 + (state.panic + state.resources + (100 - state.stability)) / 300)
@@ -533,6 +603,7 @@ struct CrisisWorldMap: View {
                         drawGrid(in: &context, size: size)
                         drawContinents(in: &context, size: size)
                         drawRoutes(in: &context, size: size, time: time)
+                        drawScanPulse(in: &context, size: size, time: time)
                     }
                 }
 
@@ -581,7 +652,8 @@ struct CrisisWorldMap: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: 28))
             .overlay(RoundedRectangle(cornerRadius: 28).stroke(.white.opacity(0.14), lineWidth: 1))
-            .shadow(color: .cyan.opacity(0.15), radius: 20, y: 10)
+            .shadow(color: (recentAction?.color ?? .cyan).opacity(eventBurst ? 0.32 : 0.15), radius: eventBurst ? 30 : 20, y: 10)
+            .animation(.spring(response: 0.5, dampingFraction: 0.72), value: eventBurst)
         }
     }
 
@@ -630,6 +702,13 @@ struct CrisisWorldMap: View {
             let glyph = Text(route.isSeaLane ? "⛴" : "✈︎").foregroundColor(route.color)
             context.draw(glyph, at: position)
         }
+    }
+
+    private func drawScanPulse(in context: inout GraphicsContext, size: CGSize, time: TimeInterval) {
+        let progress = time.truncatingRemainder(dividingBy: 2.4) / 2.4
+        let radius = min(size.width, size.height) * (0.18 + progress * 0.78)
+        let rect = CGRect(x: size.width / 2 - radius / 2, y: size.height / 2 - radius / 2, width: radius, height: radius)
+        context.stroke(Path(ellipseIn: rect), with: .color((recentAction?.color ?? .cyan).opacity(0.22 * (1 - progress))), lineWidth: 2)
     }
 
     private func quadraticPoint(start: CGPoint, control: CGPoint, end: CGPoint, t: Double) -> CGPoint {
@@ -775,8 +854,51 @@ struct WorldHotspot: Identifiable, Equatable {
     ]
 }
 
+
+struct AnimatedBackdrop: View {
+    let intensity: Double
+
+    var body: some View {
+        TimelineView(.animation) { timeline in
+            let time = timeline.date.timeIntervalSinceReferenceDate
+            Canvas { context, size in
+                for index in 0..<18 {
+                    let seed = Double(index)
+                    let x = (sin(time * (0.08 + seed * 0.003) + seed) + 1) / 2 * size.width
+                    let y = (cos(time * (0.06 + seed * 0.004) + seed * 1.7) + 1) / 2 * size.height
+                    let radius = 22 + (seed.truncatingRemainder(dividingBy: 5) * 9)
+                    let rect = CGRect(x: x - radius / 2, y: y - radius / 2, width: radius, height: radius)
+                    context.fill(Path(ellipseIn: rect), with: .color(Color.cyan.opacity(0.018 * intensity)))
+                }
+            }
+        }
+        .blendMode(.screen)
+    }
+}
+
+struct EffectChip: View {
+    let title: String
+    let value: Double
+    let color: Color
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value > 0 ? "+\(Int(value))" : "\(Int(value))")
+                .font(.callout.monospacedDigit().bold())
+        }
+        .font(.caption.weight(.semibold))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.14), in: RoundedRectangle(cornerRadius: 12))
+        .foregroundStyle(color)
+    }
+}
+
 struct ActionCard: View {
     let action: CrisisAction
+    let isHighlighted: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -793,8 +915,10 @@ struct ActionCard: View {
         }
         .frame(maxWidth: .infinity, minHeight: 132, alignment: .topLeading)
         .padding(14)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.10)))
+        .background(isHighlighted ? action.color.opacity(0.20) : .white.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(isHighlighted ? action.color : .white.opacity(0.10), lineWidth: isHighlighted ? 2 : 1))
+        .scaleEffect(isHighlighted ? 1.025 : 1)
+        .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isHighlighted)
     }
 }
 
