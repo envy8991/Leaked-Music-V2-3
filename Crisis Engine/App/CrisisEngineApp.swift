@@ -159,6 +159,8 @@ struct ScenarioSimulationView: View {
     @State private var showTutorial = true
     @State private var latestEvent: RandomEvent?
     @State private var pulseMetrics = false
+    @State private var recentAction: CrisisAction?
+    @State private var selectedHotspot: WorldHotspot? = WorldHotspot.hotspots.first
 
     private var completedEndingList: [String] {
         completedEndings.split(separator: ",").map(String.init)
@@ -173,6 +175,7 @@ struct ScenarioSimulationView: View {
                     header
                     if showTutorial { tutorialCard }
                     objectiveCard
+                    worldMapPanel
                     setupControls
                     worldStatus
                     modifierPicker
@@ -245,6 +248,45 @@ struct ScenarioSimulationView: View {
                 }
             }
         }
+    }
+
+    private var worldMapPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Live Crisis Map")
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
+                    Text("Tap hotspots to inspect regional stress. Routes flare after every pressure point, so actions feel like global chain reactions instead of menu spam.")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.66))
+                }
+                Spacer()
+                Label(state.phase.title, systemImage: "antenna.radiowaves.left.and.right")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(.orange.opacity(0.18), in: Capsule())
+                    .foregroundStyle(.orange)
+            }
+
+            CrisisWorldMap(
+                state: state,
+                recentAction: recentAction,
+                selectedHotspot: $selectedHotspot
+            )
+            .frame(height: 310)
+
+            if let selectedHotspot {
+                HotspotIntelCard(hotspot: selectedHotspot, state: state)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+        }
+        .padding(16)
+        .background(.black.opacity(0.24), in: RoundedRectangle(cornerRadius: 24))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(.cyan.opacity(0.18)))
+        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: selectedHotspot)
+        .animation(.easeInOut(duration: 0.35), value: state.day)
     }
 
     private var setupControls: some View {
@@ -416,6 +458,7 @@ struct ScenarioSimulationView: View {
             let event = RandomEvent.event(for: state.day, action: action)
             effects = effects.combining(event.effects)
             latestEvent = event
+            recentAction = action
 
             state.stability = clamp(state.stability + effects.stability)
             state.panic = clamp(state.panic + effects.panic)
@@ -456,9 +499,280 @@ struct ScenarioSimulationView: View {
         }
         showTutorial = true
         latestEvent = nil
+        recentAction = nil
+        selectedHotspot = WorldHotspot.hotspots.first
     }
 
     private func clamp(_ value: Double) -> Double { min(100, max(0, value)) }
+}
+
+struct CrisisWorldMap: View {
+    let state: CollapseRunState
+    let recentAction: CrisisAction?
+    @Binding var selectedHotspot: WorldHotspot?
+
+    private var routeOpacity: Double {
+        min(0.95, 0.30 + (state.panic + state.resources + (100 - state.stability)) / 300)
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 0.02, green: 0.06, blue: 0.11), Color(red: 0.02, green: 0.16, blue: 0.22), Color(red: 0.05, green: 0.04, blue: 0.10)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                TimelineView(.animation) { timeline in
+                    let time = timeline.date.timeIntervalSinceReferenceDate
+                    Canvas { context, size in
+                        drawGrid(in: &context, size: size)
+                        drawContinents(in: &context, size: size)
+                        drawRoutes(in: &context, size: size, time: time)
+                    }
+                }
+
+                ForEach(WorldHotspot.hotspots) { hotspot in
+                    let position = hotspot.point(in: geometry.size)
+                    Button {
+                        selectedHotspot = hotspot
+                    } label: {
+                        HotspotMarker(
+                            hotspot: hotspot,
+                            intensity: hotspot.intensity(for: state),
+                            isSelected: selectedHotspot?.id == hotspot.id
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .position(position)
+                    .accessibilityLabel("\(hotspot.name) hotspot")
+                    .accessibilityValue("\(Int(hotspot.intensity(for: state) * 100)) percent crisis intensity")
+                }
+
+                VStack {
+                    HStack {
+                        MapLegendItem(color: .cyan, text: "Air route")
+                        MapLegendItem(color: .blue, text: "Sea lane")
+                        MapLegendItem(color: .orange, text: "Stress")
+                        Spacer()
+                    }
+                    Spacer()
+                    HStack {
+                        Label(recentAction?.title ?? "Awaiting first pressure point", systemImage: recentAction?.icon ?? "globe")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(.black.opacity(0.46), in: Capsule())
+                            .foregroundStyle(recentAction?.color ?? .white.opacity(0.8))
+                        Spacer()
+                        Text("DAY \(state.day)")
+                            .font(.caption.monospacedDigit().bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(.black.opacity(0.46), in: Capsule())
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(14)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 28))
+            .overlay(RoundedRectangle(cornerRadius: 28).stroke(.white.opacity(0.14), lineWidth: 1))
+            .shadow(color: .cyan.opacity(0.15), radius: 20, y: 10)
+        }
+    }
+
+    private func drawGrid(in context: inout GraphicsContext, size: CGSize) {
+        var path = Path()
+        stride(from: 0, through: size.width, by: size.width / 6).forEach { x in
+            path.move(to: CGPoint(x: x, y: 0))
+            path.addLine(to: CGPoint(x: x, y: size.height))
+        }
+        stride(from: 0, through: size.height, by: size.height / 5).forEach { y in
+            path.move(to: CGPoint(x: 0, y: y))
+            path.addLine(to: CGPoint(x: size.width, y: y))
+        }
+        context.stroke(path, with: .color(.white.opacity(0.06)), lineWidth: 1)
+    }
+
+    private func drawContinents(in context: inout GraphicsContext, size: CGSize) {
+        for continent in WorldContinent.all {
+            var path = Path()
+            let first = continent.points[0].point(in: size)
+            path.move(to: first)
+            for point in continent.points.dropFirst() {
+                path.addLine(to: point.point(in: size))
+            }
+            path.closeSubpath()
+            context.fill(path, with: .linearGradient(
+                Gradient(colors: [.green.opacity(0.30), .mint.opacity(0.16), .yellow.opacity(0.11)]),
+                startPoint: CGPoint(x: 0, y: 0),
+                endPoint: CGPoint(x: size.width, y: size.height)
+            ))
+            context.stroke(path, with: .color(.white.opacity(0.12)), lineWidth: 1)
+        }
+    }
+
+    private func drawRoutes(in context: inout GraphicsContext, size: CGSize, time: TimeInterval) {
+        for route in WorldRoute.routes {
+            let start = route.start.point(in: size)
+            let end = route.end.point(in: size)
+            var path = Path()
+            path.move(to: start)
+            path.addQuadCurve(to: end, control: route.control.point(in: size))
+            context.stroke(path, with: .color(route.color.opacity(routeOpacity)), style: StrokeStyle(lineWidth: route.isSeaLane ? 2 : 1.4, dash: route.isSeaLane ? [7, 6] : [3, 5]))
+
+            let progress = (time * route.speed + route.offset).truncatingRemainder(dividingBy: 1)
+            let position = quadraticPoint(start: start, control: route.control.point(in: size), end: end, t: progress)
+            let glyph = Text(route.isSeaLane ? "⛴" : "✈︎").foregroundColor(route.color)
+            context.draw(glyph, at: position)
+        }
+    }
+
+    private func quadraticPoint(start: CGPoint, control: CGPoint, end: CGPoint, t: Double) -> CGPoint {
+        let oneMinusT = 1 - t
+        return CGPoint(
+            x: oneMinusT * oneMinusT * start.x + 2 * oneMinusT * t * control.x + t * t * end.x,
+            y: oneMinusT * oneMinusT * start.y + 2 * oneMinusT * t * control.y + t * t * end.y
+        )
+    }
+}
+
+struct HotspotMarker: View {
+    let hotspot: WorldHotspot
+    let intensity: Double
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(hotspot.color.opacity(0.18 + intensity * 0.42))
+                .frame(width: 34 + intensity * 30, height: 34 + intensity * 30)
+                .blur(radius: 3)
+            Circle()
+                .stroke(hotspot.color.opacity(0.86), lineWidth: isSelected ? 3 : 1.5)
+                .frame(width: 24 + intensity * 18, height: 24 + intensity * 18)
+            Image(systemName: hotspot.icon)
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .padding(7)
+                .background(hotspot.color.opacity(0.88), in: Circle())
+        }
+        .scaleEffect(isSelected ? 1.16 : 1)
+    }
+}
+
+struct HotspotIntelCard: View {
+    let hotspot: WorldHotspot
+    let state: CollapseRunState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label(hotspot.name, systemImage: hotspot.icon)
+                    .font(.headline)
+                    .foregroundStyle(hotspot.color)
+                Spacer()
+                Text("\(Int(hotspot.intensity(for: state) * 100))% stressed")
+                    .font(.caption.monospacedDigit().bold())
+                    .foregroundStyle(.white.opacity(0.74))
+            }
+            Text(hotspot.briefing(for: state))
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.72))
+        }
+        .padding(12)
+        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(hotspot.color.opacity(0.22)))
+    }
+}
+
+struct MapLegendItem: View {
+    let color: Color
+    let text: String
+
+    var body: some View {
+        Label(text, systemImage: "circle.fill")
+            .font(.caption2.bold())
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.black.opacity(0.32), in: Capsule())
+    }
+}
+
+struct MapPoint {
+    let x: Double
+    let y: Double
+
+    func point(in size: CGSize) -> CGPoint {
+        CGPoint(x: size.width * x, y: size.height * y)
+    }
+}
+
+struct WorldContinent {
+    let points: [MapPoint]
+
+    static let all = [
+        WorldContinent(points: [MapPoint(x: 0.08, y: 0.30), MapPoint(x: 0.20, y: 0.18), MapPoint(x: 0.34, y: 0.25), MapPoint(x: 0.28, y: 0.48), MapPoint(x: 0.13, y: 0.52)]),
+        WorldContinent(points: [MapPoint(x: 0.30, y: 0.55), MapPoint(x: 0.42, y: 0.58), MapPoint(x: 0.38, y: 0.82), MapPoint(x: 0.31, y: 0.88), MapPoint(x: 0.25, y: 0.68)]),
+        WorldContinent(points: [MapPoint(x: 0.47, y: 0.25), MapPoint(x: 0.58, y: 0.18), MapPoint(x: 0.73, y: 0.28), MapPoint(x: 0.69, y: 0.48), MapPoint(x: 0.51, y: 0.46)]),
+        WorldContinent(points: [MapPoint(x: 0.56, y: 0.50), MapPoint(x: 0.69, y: 0.52), MapPoint(x: 0.66, y: 0.78), MapPoint(x: 0.55, y: 0.78), MapPoint(x: 0.50, y: 0.62)]),
+        WorldContinent(points: [MapPoint(x: 0.76, y: 0.44), MapPoint(x: 0.91, y: 0.50), MapPoint(x: 0.88, y: 0.72), MapPoint(x: 0.75, y: 0.68)])
+    ]
+}
+
+struct WorldRoute {
+    let start: MapPoint
+    let control: MapPoint
+    let end: MapPoint
+    let color: Color
+    let isSeaLane: Bool
+    let speed: Double
+    let offset: Double
+
+    static let routes = [
+        WorldRoute(start: MapPoint(x: 0.22, y: 0.32), control: MapPoint(x: 0.42, y: 0.06), end: MapPoint(x: 0.58, y: 0.30), color: .cyan, isSeaLane: false, speed: 0.11, offset: 0.10),
+        WorldRoute(start: MapPoint(x: 0.62, y: 0.34), control: MapPoint(x: 0.82, y: 0.18), end: MapPoint(x: 0.84, y: 0.55), color: .cyan, isSeaLane: false, speed: 0.09, offset: 0.55),
+        WorldRoute(start: MapPoint(x: 0.24, y: 0.54), control: MapPoint(x: 0.48, y: 0.75), end: MapPoint(x: 0.78, y: 0.60), color: .blue, isSeaLane: true, speed: 0.07, offset: 0.32),
+        WorldRoute(start: MapPoint(x: 0.56, y: 0.66), control: MapPoint(x: 0.35, y: 0.87), end: MapPoint(x: 0.16, y: 0.43), color: .blue, isSeaLane: true, speed: 0.06, offset: 0.72)
+    ]
+}
+
+struct WorldHotspot: Identifiable, Equatable {
+    let id = UUID()
+    let name: String
+    let icon: String
+    let color: Color
+    let location: MapPoint
+    let primaryMetric: KeyPath<CollapseRunState, Double>
+    let invertsMetric: Bool
+    let copy: String
+
+    func point(in size: CGSize) -> CGPoint { location.point(in: size) }
+
+    func intensity(for state: CollapseRunState) -> Double {
+        let raw = state[keyPath: primaryMetric]
+        let adjusted = invertsMetric ? 100 - raw : raw
+        return min(1, max(0.18, adjusted / 100))
+    }
+
+    func briefing(for state: CollapseRunState) -> String {
+        "\(copy) Current signal: \(Int(intensity(for: state) * 100))%. Watch routes around this node as new shocks compound."
+    }
+
+    static func == (lhs: WorldHotspot, rhs: WorldHotspot) -> Bool { lhs.name == rhs.name }
+
+    static let hotspots = [
+        WorldHotspot(name: "North Atlantic Markets", icon: "chart.line.downtrend.xyaxis", color: .red, location: MapPoint(x: 0.25, y: 0.32), primaryMetric: \.stability, invertsMetric: true, copy: "Finance, insurance, and jobs wobble when stability drops."),
+        WorldHotspot(name: "Equatorial Food Belt", icon: "cloud.sun.bolt.fill", color: .yellow, location: MapPoint(x: 0.50, y: 0.54), primaryMetric: \.resources, invertsMetric: false, copy: "Crop stress and port delays convert pressure into shortages."),
+        WorldHotspot(name: "Eurasian Grid", icon: "bolt.slash.fill", color: .orange, location: MapPoint(x: 0.66, y: 0.33), primaryMetric: \.resources, invertsMetric: false, copy: "Power, data centers, hospitals, and fuel logistics share fragile dependencies."),
+        WorldHotspot(name: "Pacific Megacities", icon: "person.3.sequence.fill", color: .purple, location: MapPoint(x: 0.84, y: 0.56), primaryMetric: \.panic, invertsMetric: false, copy: "Dense feeds and neighborhoods amplify panic when visible systems fail."),
+        WorldHotspot(name: "Global Watch Desk", icon: "eye.fill", color: .cyan, location: MapPoint(x: 0.38, y: 0.72), primaryMetric: \.awareness, invertsMetric: false, copy: "Investigators connect signals here; too much awareness ends the run early.")
+    ]
 }
 
 struct ActionCard: View {

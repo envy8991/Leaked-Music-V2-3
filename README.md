@@ -16,7 +16,7 @@ Crisis Engine is a SwiftUI strategy game about connected systems that spread, mu
 The current vertical slice includes:
 
 1. A dark sci-fi main menu with a mode carousel.
-2. A playable Collapse Engine scenario.
+2. A playable Collapse Engine scenario with a live stylized world map, animated air routes, animated sea lanes, selectable crisis hotspots, and action-reactive map telemetry.
 3. Four crisis metrics:
    - Global Stability
    - Public Panic
@@ -45,9 +45,10 @@ The current vertical slice includes:
 10. Three difficulty levels that adjust thresholds, effect intensity, and score multipliers.
 11. Unlockable starting conditions tied to completed endings.
 12. A chain-reaction log that records how each player choice and event changes the simulation.
-13. Stronger danger feedback when metrics cross risky thresholds.
-14. Animated metric changes, event-card transitions, numeric score/metric transitions, and press feedback on action cards.
-15. A privacy manifest declaring no data collection or tracking for the current offline vertical slice.
+13. A Plague Inc-inspired presentation layer where planes, boats, map hotspots, and regional intel make global pressure feel alive between choices.
+14. Stronger danger feedback when metrics cross risky thresholds.
+15. Animated metric changes, event-card transitions, numeric score/metric transitions, and press feedback on action cards.
+16. A privacy manifest declaring no data collection or tracking for the current offline vertical slice.
 
 ## How to Test
 
@@ -63,12 +64,13 @@ Use this smoke-test checklist after meaningful changes:
 8. Confirm locked starting conditions explain their unlock requirements.
 9. Select every policy modifier.
 10. Use every pressure-point action at least once.
-11. Confirm the chain-reaction log records actions and random events.
-12. Continue a run until an ending appears.
-13. Start a new run from the ending card.
-14. Confirm best score and completed endings persist after relaunching the app.
-15. Confirm newly unlocked starting conditions become selectable after completing their required endings.
-16. Repeat on a small iPhone and iPad simulator to check layout wrapping and scrolling.
+11. Confirm the live world map shows moving route traffic, selectable hotspots, and updated latest-action telemetry after each pressure point.
+12. Confirm the chain-reaction log records actions and random events.
+13. Continue a run until an ending appears.
+14. Start a new run from the ending card.
+15. Confirm best score and completed endings persist after relaunching the app.
+16. Confirm newly unlocked starting conditions become selectable after completing their required endings.
+17. Repeat on a small iPhone and iPad simulator to check layout wrapping and scrolling.
 
 ## Roadmap
 
@@ -100,6 +102,7 @@ The next step is to polish Collapse Engine, then expand the shared simulation fo
 
 ### Phase 4 — Improve Presentation
 
+- [x] Add a first-pass interactive world map presentation layer with animated route traffic and crisis hotspots.
 - [ ] Add custom visual identity: logo, launch screen, icon pass, color system, and typography polish.
 - [ ] Add sound effects and music direction.
 - [ ] Add animations for metric changes, danger states, and major events.
@@ -159,6 +162,7 @@ Keeping the README current will make it easier to track progress, onboard collab
 
 ## Completed in This Update
 
+- Added a live stylized crisis map to Collapse Engine with animated air routes, animated sea lanes, tappable regional hotspots, stress-based hotspot intensity, and latest-action telemetry.
 - Added animated metric/progress changes, numeric transitions, event-card reveals, danger pulsing, and action-card press feedback for the Collapse Engine play loop.
 - Added an Apple privacy manifest for the current offline/no-tracking build.
 - Added a release checklist and documented that the first public release should ship with Collapse Engine only while future modes remain expansions.
@@ -168,6 +172,6 @@ Keeping the README current will make it easier to track progress, onboard collab
 
 - This repository does not include automated XCTest coverage yet.
 - Difficulty levels and unlockable starting conditions are implemented for Collapse Engine, but still need simulator balancing passes.
-- Sound direction, custom icon/logo work, launch-screen polish, screenshots, and store copy are still needed.
+- The world map is a first-pass SwiftUI/Canvas visual system using procedural shapes and SF Symbols; bespoke art, sound direction, custom icon/logo work, launch-screen polish, screenshots, and store copy are still needed.
 - Real-device QA is still required before release.
 - The project still needs to be built and archived on a local macOS/Xcode environment before any release submission.
