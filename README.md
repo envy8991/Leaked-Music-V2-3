@@ -6,7 +6,7 @@ Crisis Engine is a SwiftUI strategy game about connected systems that spread, mu
 
 - **Platform:** iOS / SwiftUI
 - **Project file:** `Crisis Engine.xcodeproj`
-- **Legacy project alias:** `Leaked Music V2.xcodeproj` is kept as a root-level symlink for scripts or tooling that still reference the previous repository/project name.
+- **Legacy project alias:** `Leaked Music V2.xcodeproj` is kept as a root-level symlink for scripts or tooling that still reference the previous repository/project name. A shared `MovieBox Host` scheme is also kept for older Xcode run configurations that still request that scheme name.
 - **App entry point:** `Crisis Engine/App/CrisisEngineApp.swift`
 - **Playable mode:** Collapse Engine
 - **Target/product name:** Crisis Engine
@@ -144,7 +144,7 @@ Keeping the README current will make it easier to track progress, onboard collab
 
 ## Development Notes
 
-- Open `Crisis Engine.xcodeproj` in Xcode. If older tooling expects the previous repository name, `Leaked Music V2.xcodeproj` points to the same project.
+- Open `Crisis Engine.xcodeproj` in Xcode. If older tooling expects the previous repository name, `Leaked Music V2.xcodeproj` points to the same project, and the shared `MovieBox Host` scheme points at the current `Crisis Engine` app target.
 - Build and run the `Crisis Engine` target.
 - The current SwiftUI app entry point is `CrisisEngineApp`.
 - Collapse Engine now lives in a single SwiftUI file for speed of iteration; a future cleanup should split game data, simulation logic, persistence, setup/progression rules, and UI into separate files.
@@ -166,6 +166,7 @@ Keeping the README current will make it easier to track progress, onboard collab
 
 ## Completed in This Update
 
+- Added a shared `MovieBox Host` Xcode scheme that builds, runs, profiles, analyzes, and archives the current `Crisis Engine` app target, fixing legacy launch configurations that still ask `Leaked Music V2.xcodeproj` for that scheme.
 - Added a root-level `Leaked Music V2.xcodeproj` compatibility symlink that points to `Crisis Engine.xcodeproj`, so legacy scripts can still find the Xcode project while the app remains branded as Crisis Engine.
 - Added a live stylized crisis map to Collapse Engine with animated air routes, animated sea lanes, tappable regional hotspots, stress-based hotspot intensity, and latest-action telemetry.
 - Added animated metric/progress changes, numeric transitions, event-card reveals, danger pulsing, and action-card press feedback for the Collapse Engine play loop.
