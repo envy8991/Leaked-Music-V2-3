@@ -49,7 +49,9 @@ The current vertical slice includes:
 13. A Plague Inc-inspired presentation layer where planes, boats, map hotspots, and regional intel make global pressure feel alive between choices.
 14. Stronger danger feedback when metrics cross risky thresholds.
 15. Animated metric changes, event-card transitions, numeric score/metric transitions, and press feedback on action cards.
-16. A privacy manifest declaring no data collection or tracking for the current offline vertical slice.
+16. A tactical console where players can select a pressure point, preview modifier/difficulty-adjusted metric impacts, then execute the highlighted action.
+17. Ambient animated backdrops, pulsing menu status chips, map scan pulses, route flare feedback, and haptic response when actions resolve.
+18. A privacy manifest declaring no data collection or tracking for the current offline vertical slice.
 
 ## How to Test
 
@@ -107,7 +109,7 @@ The next step is to polish Collapse Engine, then expand the shared simulation fo
 - [x] Add a first-pass interactive world map presentation layer with animated route traffic and crisis hotspots.
 - [ ] Add custom visual identity: logo, launch screen, icon pass, color system, and typography polish.
 - [ ] Add sound effects and music direction.
-- [ ] Add animations for metric changes, danger states, and major events.
+- [x] Add animations for metric changes, danger states, and major events.
 - [x] Improve accessibility basics with labels, values, and color-safe danger icons.
 - [x] Add first-pass animations for metric changes, danger states, event reveals, and action-card press states.
 
@@ -167,6 +169,8 @@ Keeping the README current will make it easier to track progress, onboard collab
 - Added a root-level `Leaked Music V2.xcodeproj` compatibility symlink that points to `Crisis Engine.xcodeproj`, so legacy scripts can still find the Xcode project while the app remains branded as Crisis Engine.
 - Added a live stylized crisis map to Collapse Engine with animated air routes, animated sea lanes, tappable regional hotspots, stress-based hotspot intensity, and latest-action telemetry.
 - Added animated metric/progress changes, numeric transitions, event-card reveals, danger pulsing, and action-card press feedback for the Collapse Engine play loop.
+- Added a tactical console that lets players inspect pressure-point impacts before committing a turn, plus highlighted action selection for clearer interaction flow.
+- Added ambient animated backdrops, pulsing menu status chips, scan pulses on the world map, stronger route/map burst feedback, and haptic action confirmation.
 - Added an Apple privacy manifest for the current offline/no-tracking build.
 - Added a release checklist and documented that the first public release should ship with Collapse Engine only while future modes remain expansions.
 - Kept prior completed work: Guided, Standard, and Hardline difficulty levels; the Run Setup panel; unlockable starting conditions; setup-aware objectives, tutorial text, scoring, and ending checks.
@@ -175,6 +179,6 @@ Keeping the README current will make it easier to track progress, onboard collab
 
 - This repository does not include automated XCTest coverage yet.
 - Difficulty levels and unlockable starting conditions are implemented for Collapse Engine, but still need simulator balancing passes.
-- The world map is a first-pass SwiftUI/Canvas visual system using procedural shapes and SF Symbols; bespoke art, sound direction, custom icon/logo work, launch-screen polish, screenshots, and store copy are still needed.
+- The world map and ambient effects are still procedural SwiftUI/Canvas visuals using shapes and SF Symbols; bespoke art, sound direction, custom icon/logo work, launch-screen polish, screenshots, and store copy are still needed.
 - Real-device QA is still required before release.
 - The project still needs to be built and archived on a local macOS/Xcode environment before any release submission.
